@@ -2,9 +2,9 @@ const GOOGLE_SHEET_WEBAPP_URL =
   "https://script.google.com/macros/s/AKfycbyvUBHcjf8pl-9wOZK7ADTYiVlLXr49h-dC6f_WH4JpQDpU9LibIT_952x9WDiuEb-LfQ/exec";
 
 let empleadosSeleccionados = [];
-let tipoSeleccionado = null;
-let accion = null;      // "EMPECE" | "TERMINE" | null
-let quick = null;       // "LIMP" | "MOV" | "BANO" | null
+let tipoSeleccionado = null;     // 1..9
+let accion = null;               // "EMPECE" | "TERMINE" | null
+let quick = null;                // "LIMP" | "MOV" | "BANO" | null
 
 const empleadoScreen = document.getElementById("empleadoScreen");
 const optionsScreen  = document.getElementById("optionsScreen");
@@ -55,6 +55,17 @@ function accionLabel(){
   if(accion === "TERMINE") return "Terminé";
   return "";
 }
+function setUnidad(n){
+  if([1,2,8].includes(n)) unitTitle.innerText = "Uni";
+  if([3,4,5,6,7].includes(n)) unitTitle.innerText = "Cajas";
+  if(n === 9) unitTitle.innerText = "KG";
+}
+function disableGrid(gridEl, disabled){
+  gridEl.querySelectorAll(".option").forEach(o => {
+    if(disabled) o.classList.add("disabled");
+    else o.classList.remove("disabled");
+  });
+}
 
 /* ---------- empleados ---------- */
 document.querySelectorAll('[data-emp]').forEach(el => {
@@ -90,103 +101,53 @@ backBtn.addEventListener("click", () => {
 /* ---------- sector 01–09 ---------- */
 tipoGrid.querySelectorAll('[data-tipo]').forEach(el => {
   el.addEventListener("click", () => {
+    // si quick está seleccionado, no permitir sector
+    if(quick !== null) return;
+
     tipoGrid.querySelectorAll(".option").forEach(o => o.classList.remove("active"));
     el.classList.add("active");
-
     tipoSeleccionado = Number(el.getAttribute("data-tipo"));
+
     setUnidad(tipoSeleccionado);
 
+    // si elijo sector => bloqueo quick
+    disableGrid(quickGrid, true);
+
+    applyModes();
     validateForm();
   });
 });
 
-function setUnidad(n){
-  if([1,2,8].includes(n)) unitTitle.innerText = "Uni";
-  if([3,4,5,6,7].includes(n)) unitTitle.innerText = "Cajas";
-  if(n === 9) unitTitle.innerText = "KG";
-}
-
-/* ---------- Quick buttons: Limp/Mov/Baño (independientes de 07/08/09) ---------- */
+/* ---------- quick Limp/Mov/Baño ---------- */
 quickGrid.querySelectorAll('[data-quick]').forEach(el => {
   el.addEventListener("click", () => {
-    const q = el.getAttribute("data-quick");
+    // si hay sector seleccionado, no permitir quick
+    if(tipoSeleccionado !== null) return;
 
-    // toggle
+    const q = el.getAttribute("data-quick");
     if(quick === q){
       quick = null;
       el.classList.remove("active");
+      disableGrid(tipoGrid, false);
     }else{
       quick = q;
       quickGrid.querySelectorAll(".option").forEach(o => o.classList.remove("active"));
       el.classList.add("active");
+
+      // si elijo quick => bloqueo sector
+      disableGrid(tipoGrid, true);
     }
 
-    applyQuickUI();
+    applyModes();
     validateForm();
   });
 });
 
-function applyQuickUI(){
-  const isQuick = quick !== null;
-  optionsScreen.classList.toggle("quick-mode", isQuick);
-
-  // reset inputs
-  codeInput.value = "";
-  detailInput.value = "";
-  qtyInput.value = "";
-
-  if(isQuick){
-    // quick anula el flujo de código/cantidad
-    noCodeChk.checked = true;
-    noCodeChk.disabled = true;
-
-    // modo no-code (para poder usar detail si es MOV)
-    formBody.classList.remove("mode-code");
-    formBody.classList.add("mode-nocode");
-
-    // ocultar unidad siempre en quick
-    if(unitSlotHeader.contains(unitTitle)) unitSlotHeader.innerHTML = "";
-    if(qtyBox.contains(unitTitle)) qtyBox.removeChild(unitTitle);
-
-    // cantidad nunca en quick
-    formBody.classList.add("qty-hidden");
-    formBody.classList.remove("qty-right");
-
-    // Limp/Baño: no escribir nada
-    if(quick === "LIMP" || quick === "BANO"){
-      detailInput.style.display = "none";
-    }
-
-    // Mov: requiere descripción
-    if(quick === "MOV"){
-      detailInput.style.display = "block";
-      detailInput.placeholder = "Descripción (qué hizo)";
-    }
-  }else{
-    // vuelve normal
-    noCodeChk.disabled = false;
-    detailInput.style.display = "block";
-    detailInput.placeholder = "Detalle / Observación";
-
-    // respetar checkbox para modo
-    if(noCodeChk.checked){
-      formBody.classList.remove("mode-code");
-      formBody.classList.add("mode-nocode");
-      optionsScreen.classList.add("no-code-mode");
-    }else{
-      formBody.classList.remove("mode-nocode");
-      formBody.classList.add("mode-code");
-      optionsScreen.classList.remove("no-code-mode");
-    }
-  }
-
-  applyAccionUI(); // re-evalúa cantidad/unidad según acción
-}
-
-/* ---------- toggle “no hay código” ---------- */
+/* ---------- checkbox no code ---------- */
 noCodeChk.addEventListener("change", () => {
+  // si quick está activo, no se puede cambiar
   if(quick !== null){
-    noCodeChk.checked = true; // quick lo fuerza
+    noCodeChk.checked = true;
     return;
   }
 
@@ -228,35 +189,84 @@ btnTermine.addEventListener("click", () => {
   validateForm();
 });
 
-/* ---------- UI según acción ---------- */
-function applyAccionUI(){
-  const noHayCodigo = noCodeChk.checked;
+/* ---------- aplicar modos (normal vs quick) ---------- */
+function applyModes(){
+  // limpiar inputs para evitar basura
+  codeInput.value = "";
+  detailInput.value = "";
+  qtyInput.value = "";
 
-  // si está en quick: cantidad nunca, unidad nunca
   if(quick !== null){
+    // quick: fuerza no-code (pero sin checkbox editable)
+    optionsScreen.classList.add("quick-mode");
+    optionsScreen.classList.remove("no-code-mode");
+
+    noCodeChk.checked = true;
+    noCodeChk.disabled = true;
+
+    // layout: usamos mode-nocode para poder usar detail si MOV
+    formBody.classList.remove("mode-code");
+    formBody.classList.add("mode-nocode");
+
+    // MOV requiere descripción, Limp/Baño no
+    if(quick === "MOV"){
+      detailInput.style.display = "block";
+      detailInput.placeholder = "Descripción (qué hizo)";
+    }else{
+      detailInput.style.display = "none";
+      detailInput.placeholder = "Detalle / Observación";
+    }
+
+    // cantidad nunca en quick
     formBody.classList.add("qty-hidden");
     formBody.classList.remove("qty-right");
+
+    // unidad nunca en quick
     if(unitSlotHeader.contains(unitTitle)) unitSlotHeader.innerHTML = "";
     if(qtyBox.contains(unitTitle)) qtyBox.removeChild(unitTitle);
+
+  }else{
+    // normal: habilita checkbox
+    optionsScreen.classList.remove("quick-mode");
+    noCodeChk.disabled = false;
+    detailInput.style.display = "block";
+    detailInput.placeholder = "Detalle / Observación";
+
+    // respetar checkbox
+    if(noCodeChk.checked){
+      optionsScreen.classList.add("no-code-mode");
+      formBody.classList.remove("mode-code");
+      formBody.classList.add("mode-nocode");
+    }else{
+      optionsScreen.classList.remove("no-code-mode");
+      formBody.classList.remove("mode-nocode");
+      formBody.classList.add("mode-code");
+    }
+
+    applyAccionUI();
+  }
+}
+
+/* ---------- UI según acción ---------- */
+function applyAccionUI(){
+  // quick: ya está fijo
+  if(quick !== null){
     return;
   }
 
+  const noHayCodigo = noCodeChk.checked;
   formBody.classList.remove("qty-hidden", "qty-right");
 
   if(accion === "TERMINE"){
-    // Terminé => cantidad visible
     if(noHayCodigo){
-      // no-code => unidad arriba de cantidad centrada
       if(unitTitle.parentElement !== qtyBox) qtyBox.prepend(unitTitle);
       unitSlotHeader.innerHTML = "";
     }else{
-      // con código => cantidad derecha + unidad en header
       formBody.classList.add("qty-right");
       unitSlotHeader.innerHTML = "";
       unitSlotHeader.appendChild(unitTitle);
     }
   }else{
-    // Empecé o null => ocultar cantidad y unidad
     formBody.classList.add("qty-hidden");
     if(unitSlotHeader.contains(unitTitle)) unitSlotHeader.innerHTML = "";
     if(qtyBox.contains(unitTitle)) qtyBox.removeChild(unitTitle);
@@ -275,7 +285,9 @@ codeInput.addEventListener("input", () => {
   if(quick === null && !noCodeChk.checked) onlyDigits(codeInput);
   validateForm();
 });
+
 detailInput.addEventListener("input", validateForm);
+
 qtyInput.addEventListener("input", () => {
   onlyNumberWithComma(qtyInput);
   validateForm();
@@ -283,12 +295,12 @@ qtyInput.addEventListener("input", () => {
 
 /* ---------- validación ---------- */
 function validateForm(){
-  const areaOk = (tipoSeleccionado !== null);
+  const areaOk = (tipoSeleccionado !== null) || (quick !== null);
   const accionOk = (accion === "EMPECE" || accion === "TERMINE");
 
   if(!areaOk){
     sendBtn.disabled = true;
-    if(hintText) hintText.textContent = "Elegí el Área";
+    if(hintText) hintText.textContent = "Elegí 01–09 o Limp/Mov/Baño";
     return;
   }
   if(!accionOk){
@@ -297,34 +309,20 @@ function validateForm(){
     return;
   }
 
-  let codOk = true;
-  let cantOk = true;
-
-  // QUICK MODE
+  // quick rules
   if(quick !== null){
-    // Limp/Baño: nada
-    if(quick === "LIMP" || quick === "BANO"){
-      codOk = true;
-      cantOk = true;
-    }
-    // Mov: requiere descripción
-    if(quick === "MOV"){
-      codOk = isFilled(detailInput.value);
-      cantOk = true;
-    }
-
-    const allOk = areaOk && accionOk && codOk && cantOk;
-    sendBtn.disabled = !allOk;
-    if(hintText) hintText.textContent = allOk ? "Listo para enviar" : "Completá lo que falta";
+    const ok = (quick === "MOV") ? isFilled(detailInput.value) : true;
+    sendBtn.disabled = !ok;
+    if(hintText) hintText.textContent = ok ? "Listo para enviar" : "Completá la Descripción";
     return;
   }
 
-  // NORMAL MODE
+  // normal rules
   const noHayCodigo = noCodeChk.checked;
-  codOk = noHayCodigo ? isFilled(detailInput.value) : isFilled(codeInput.value);
-  cantOk = (accion === "TERMINE") ? isFilled(qtyInput.value) : true;
+  const codOk = noHayCodigo ? isFilled(detailInput.value) : isFilled(codeInput.value);
+  const cantOk = (accion === "TERMINE") ? isFilled(qtyInput.value) : true;
 
-  const allOk = areaOk && accionOk && codOk && cantOk;
+  const allOk = codOk && cantOk;
   sendBtn.disabled = !allOk;
   if(hintText) hintText.textContent = allOk ? "Listo para enviar" : "Completá lo que falta";
 }
@@ -338,18 +336,11 @@ async function postRow(payload){
   });
 
   const txt = await r.text();
-
   let out;
   try { out = JSON.parse(txt); }
-  catch {
-    console.error("Respuesta NO JSON:", txt);
-    out = { ok:false, error:"Respuesta no JSON (ver consola). Inicio: " + String(txt).slice(0,180) };
-  }
+  catch { out = { ok:false, error:"Respuesta no JSON: " + String(txt).slice(0,180) }; }
 
-  if(!out.ok){
-    console.error("Respuesta error:", out);
-    throw new Error(out.error || "No se pudo guardar");
-  }
+  if(!out.ok) throw new Error(out.error || "No se pudo guardar");
   return out;
 }
 
@@ -361,7 +352,7 @@ sendBtn.addEventListener("click", async () => {
   }
 
   const t = nowAR();
-  const Sector = sector2(tipoSeleccionado);
+  const Sector = (quick !== null) ? quick : sector2(tipoSeleccionado);
   const EmpeceTermine = accionLabel();
 
   let Cod = "";
@@ -369,14 +360,8 @@ sendBtn.addEventListener("click", async () => {
   let Descripcion = "";
 
   if(quick !== null){
-    // Limp/Baño: todo vacío
-    if(quick === "MOV"){
-      Descripcion = (detailInput.value || "").trim();
-    } else {
-      Descripcion = ""; // nada
-    }
-    // opcional: si querés registrar qué fue quick, lo metemos en Descripcion o Cod.
-    // Por ahora queda vacío tal como pediste.
+    // Limp/Baño: nada; Mov: descripción
+    if(quick === "MOV") Descripcion = (detailInput.value || "").trim();
   }else{
     const noHayCodigo = noCodeChk.checked;
     Cod = noHayCodigo ? "" : (codeInput.value || "").trim();
@@ -396,12 +381,9 @@ sendBtn.addEventListener("click", async () => {
 
   try{
     sendBtn.disabled = true;
-
-    // 2 nombres => 2 filas
     for(const emp of empleadosSeleccionados){
       await postRow({ ...base, Empleado: emp });
     }
-
     alert("Reporte enviado correctamente");
     location.reload();
   }catch(e){
@@ -412,6 +394,6 @@ sendBtn.addEventListener("click", async () => {
 
 /* ---------- init ---------- */
 optionsScreen.classList.toggle("no-code-mode", noCodeChk.checked);
-applyQuickUI();
+applyModes();
 applyAccionUI();
 validateForm();
