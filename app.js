@@ -1,5 +1,5 @@
 const GOOGLE_SHEET_WEBAPP_URL =
-  "https://script.google.com/macros/s/AKfycbyvUBHcjf8pl-9wOZK7ADTYiVlLXr49h-dC6f_WH4JpQDpU9LibIT_952x9WDiuEb-LfQ/exec";
+  "https://script.google.com/macros/s/AKfycbyx3BgnhoWqEWSlYfKC6SrPEPqV9BxOoQtLbqRdzokhdCMAgbLwICtq3zmqlE6-XBgb/exec";
 
 let empleadosSeleccionados = [];
 let tipoSeleccionado = null;     // 1..9
@@ -396,3 +396,4 @@ optionsScreen.classList.toggle("no-code-mode", noCodeChk.checked);
 applyModes();
 applyAccionUI();
 validateForm();
+
