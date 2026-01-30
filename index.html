@@ -44,14 +44,27 @@
         <div class="option" data-tipo="4">04</div>
         <div class="option" data-tipo="5">05</div>
         <div class="option" data-tipo="6">06</div>
-        <div class="option" data-tipo="7">07</div>
-        <div class="option" data-tipo="8">08</div>
-        <div class="option" data-tipo="9">09</div>
+
+        <!-- 07/08/09 con etiqueta -->
+        <div class="option opt-two" data-tipo="7">
+          <div class="opt-num">07</div>
+          <div class="opt-sub">Limp</div>
+        </div>
+
+        <div class="option opt-two" data-tipo="8">
+          <div class="opt-num">08</div>
+          <div class="opt-sub">Mov</div>
+        </div>
+
+        <div class="option opt-two" data-tipo="9">
+          <div class="opt-num">09</div>
+          <div class="opt-sub">Baño</div>
+        </div>
       </div>
 
       <div class="form-row">
 
-        <!-- CABECERA: Cod + Acciones (vertical o 2-col en no-code) + Unidad -->
+        <!-- CABECERA -->
         <div class="form-head">
           <div class="head-left">
             <strong>Cod.</strong>
@@ -81,6 +94,8 @@
             <input id="qtyInput" class="input-box" placeholder="Cantidad" inputmode="decimal" autocomplete="off">
           </div>
         </div>
+
+        <div class="reminder" id="reminderText">Recordar volver a enviar al finalizar</div>
 
         <button id="sendBtn" class="btn" disabled>Enviar reporte</button>
         <div class="hint" id="hintText">Completá para habilitar “Enviar”</div>
