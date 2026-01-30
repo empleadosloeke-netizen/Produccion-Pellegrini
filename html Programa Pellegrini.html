@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tierra Nativa - Reportes</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <div class="app">
+
+    <!-- empleados -->
+    <div id="empleadoScreen">
+      <h2>Seleccioná hasta 2 nombres</h2>
+
+      <div class="grid">
+        <div class="option" data-emp="Lautaro Durante">Lautaro Durante</div>
+        <div class="option" data-emp="Javier Burgos">Javier Burgos</div>
+        <div class="option" data-emp="Ximena Ortiz">Ximena Ortiz</div>
+        <div class="option" data-emp="Walter Saucedo">Walter Saucedo</div>
+        <div class="option" data-emp="Juan Gimenez">Juan Gimenez</div>
+        <div class="option" data-emp="Federico Realini">Federico Realini</div>
+        <div class="option" data-emp="David Galarza">David Galarza</div>
+        <div class="option" data-emp="Dario Mendez">Dario Mendez</div>
+        <div class="option" data-emp="Luis Luna">Luis Luna</div>
+      </div>
+
+      <button id="acceptEmpleadoBtn" class="btn" disabled>Aceptar</button>
+    </div>
+
+    <!-- sistema -->
+    <div id="optionsScreen" class="hidden">
+      <div class="screen-head">
+        <button id="backBtn" class="back-btn" aria-label="Volver">←</button>
+        <div class="screen-head-title">Seleccioná</div>
+      </div>
+
+      <!-- Sector 01–09 -->
+      <div class="grid" id="tipoGrid">
+        <div class="option" data-tipo="1">01</div>
+        <div class="option" data-tipo="2">02</div>
+        <div class="option" data-tipo="3">03</div>
+        <div class="option" data-tipo="4">04</div>
+        <div class="option" data-tipo="5">05</div>
+        <div class="option" data-tipo="6">06</div>
+        <div class="option" data-tipo="7">07</div>
+        <div class="option" data-tipo="8">08</div>
+        <div class="option" data-tipo="9">09</div>
+      </div>
+
+      <div class="form-row">
+
+        <!-- CABECERA: Cod + Acciones (vertical) + Unidad -->
+        <div class="form-head">
+          <div class="head-left">
+            <strong>Cod.</strong>
+
+            <label class="nocode-label">
+              <input type="checkbox" id="noCodeChk">
+              <span class="small">No hay código</span>
+            </label>
+          </div>
+
+          <div class="actions-col">
+            <button id="btnEmpece" class="action-btn" type="button">Empecé</button>
+            <button id="btnTermine" class="action-btn" type="button">Terminé</button>
+          </div>
+
+          <div class="head-right" id="unitSlotHeader">
+            <div id="unitTitle" class="unitTitle">Uni</div>
+          </div>
+        </div>
+
+        <!-- CUERPO: inputs en grilla 3 columnas -->
+        <div id="formBody" class="form-body mode-code qty-hidden">
+          <!-- Código (solo números cuando hay código) -->
+          <input id="codeInput" class="input-box" placeholder="Código" inputmode="numeric" autocomplete="off">
+
+          <!-- Detalle / Observación (solo cuando NO hay código) -->
+          <input id="detailInput" class="input-box" placeholder="Detalle / Observación" autocomplete="off">
+
+          <!-- Cantidad -->
+          <div id="qtyBox" class="qtyBox">
+            <input id="qtyInput" class="input-box" placeholder="Cantidad" inputmode="decimal" autocomplete="off">
+          </div>
+        </div>
+
+        <button id="sendBtn" class="btn" disabled>Enviar reporte</button>
+        <div class="hint" id="hintText">Completá para habilitar “Enviar”</div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

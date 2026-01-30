@@ -1,0 +1,223 @@
+:root { --grid-gap: 12px; }
+
+body{
+  margin:0;
+  font-family: system-ui, sans-serif;
+  background:#0f172a;
+  color:white;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:100vh;
+}
+
+.app{
+  width:100%;
+  max-width:430px;
+  padding:20px;
+}
+
+h2{ text-align:center; margin:10px 0 10px; }
+
+.hidden{display:none;}
+
+.grid{
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap:var(--grid-gap);
+}
+
+.option{
+  background:#1e293b;
+  padding:18px 5px;
+  text-align:center;
+  border-radius:12px;
+  cursor:pointer;
+  font-weight:700;
+  transition:.2s;
+  user-select:none;
+}
+.option.active{ background:#16a34a; }
+
+.btn{
+  margin-top:18px;
+  width:100%;
+  padding:14px;
+  background:#22c55e;
+  border:none;
+  border-radius:12px;
+  font-size:16px;
+  font-weight:700;
+  cursor:pointer;
+}
+.btn:disabled{ background:#334155; cursor:not-allowed; }
+
+.form-row{ margin-top:15px; }
+
+.small{ font-size:12px; opacity:.8; }
+
+.nocode-label{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  cursor:pointer;
+}
+
+/* Inputs: misma altura que botones */
+.input-box{
+  background:#1e293b;
+  border-radius:12px;
+  height:48px;
+  padding:0 12px;
+  text-align:center;
+  font-size:18px;
+  color:white;
+  border:none;
+  outline:none;
+  width:100%;
+  box-sizing:border-box;
+}
+
+/* Header pantalla opciones con flecha */
+.screen-head{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:6px;
+}
+
+.back-btn{
+  width:42px;
+  height:42px;
+  border-radius:12px;
+  background:#1e293b;
+  border:none;
+  color:white;
+  font-size:18px;
+  font-weight:900;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  user-select:none;
+}
+.back-btn:active{ transform:scale(0.98); }
+
+.screen-head-title{
+  flex:1;
+  text-align:center;
+  font-size:22px;
+  font-weight:800;
+  margin-right:42px;
+}
+
+/* CABECERA */
+.form-head{
+  display:grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap:var(--grid-gap);
+  align-items:start;
+  margin-bottom:0;
+  padding-bottom:0;
+}
+
+.head-left{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-height:48px;
+}
+
+/* (por defecto) Acciones vertical */
+.actions-col{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  align-items:stretch;
+}
+
+.action-btn{
+  background:#1e293b;
+  border:none;
+  border-radius:12px;
+  height:48px;
+  padding:0 6px;
+  font-weight:800;
+  cursor:pointer;
+  color:white;
+  text-align:center;
+}
+.action-btn.active{ background:#16a34a; }
+
+.head-right{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:48px;
+}
+
+.unitTitle{
+  font-size:12px;
+  font-weight:800;
+  opacity:.9;
+  text-align:center;
+}
+
+/* BODY: sube inputs para alinearlos con “Terminé” */
+.form-body{
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap:var(--grid-gap);
+  align-items:start;
+  margin-top:-58px; /* ajustá fino si querés */
+  padding-top:0;
+}
+
+/* MODO: HAY CÓDIGO */
+.mode-code #codeInput{ display:block; grid-column: 1 / 2; }
+.mode-code #detailInput{ display:none; }
+
+.mode-code.qty-right #qtyBox{ display:flex; grid-column: 3 / 4; }
+.mode-code.qty-hidden #qtyBox{ display:none; }
+
+/* MODO: NO HAY CÓDIGO */
+.mode-nocode #codeInput{ display:none; }
+.mode-nocode #detailInput{ display:block; grid-column: 1 / 4; }
+
+.mode-nocode #qtyBox{ display:flex; grid-column: 2 / 3; }
+.mode-nocode.qty-hidden #qtyBox{ display:none; }
+
+.qtyBox{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.hint{
+  margin-top:10px;
+  font-size:12px;
+  opacity:.8;
+  text-align:center;
+}
+
+/* =========================
+   SOLO CUANDO NO HAY CÓDIGO
+   “Terminé” a la altura de “Empecé”
+   y con ancho de 1 columna (como 09)
+   ========================= */
+.no-code-mode .actions-col{
+  /* ocupa columnas 2 y 3 (ancho 08 + 09) */
+  grid-column: 2 / 4;
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:var(--grid-gap);
+  align-items:stretch;
+}
+
+.no-code-mode .actions-col #btnEmpece{
+  grid-column: 1 / 2; /* ancho como 08 */
+}
+
+.no-code-mode .actions-col #btnTermine{
+  grid-column: 2 / 3; /* ancho como 09 */
+}
