@@ -3,7 +3,8 @@ const GOOGLE_SHEET_WEBAPP_URL =
 
 let empleadosSeleccionados = [];
 let tipoSeleccionado = null;
-let accion = null; // "EMPECE" | "TERMINE" | null
+let accion = null;      // "EMPECE" | "TERMINE" | null
+let quick = null;       // "LIMP" | "MOV" | "BANO" | null
 
 const empleadoScreen = document.getElementById("empleadoScreen");
 const optionsScreen  = document.getElementById("optionsScreen");
@@ -13,6 +14,7 @@ const backBtn = document.getElementById("backBtn");
 const sendBtn = document.getElementById("sendBtn");
 
 const tipoGrid = document.getElementById("tipoGrid");
+const quickGrid = document.getElementById("quickGrid");
 
 const noCodeChk = document.getElementById("noCodeChk");
 const btnEmpece = document.getElementById("btnEmpece");
@@ -53,9 +55,6 @@ function accionLabel(){
   if(accion === "TERMINE") return "Terminé";
   return "";
 }
-function isSpecialSector(n){
-  return [7,8,9].includes(Number(n));
-}
 
 /* ---------- empleados ---------- */
 document.querySelectorAll('[data-emp]').forEach(el => {
@@ -88,16 +87,15 @@ backBtn.addEventListener("click", () => {
   validateForm();
 });
 
-/* ---------- sector ---------- */
+/* ---------- sector 01–09 ---------- */
 tipoGrid.querySelectorAll('[data-tipo]').forEach(el => {
   el.addEventListener("click", () => {
     tipoGrid.querySelectorAll(".option").forEach(o => o.classList.remove("active"));
     el.classList.add("active");
 
     tipoSeleccionado = Number(el.getAttribute("data-tipo"));
-
     setUnidad(tipoSeleccionado);
-    applySectorRules();
+
     validateForm();
   });
 });
@@ -108,11 +106,87 @@ function setUnidad(n){
   if(n === 9) unitTitle.innerText = "KG";
 }
 
-/* ---------- toggle no code ---------- */
-noCodeChk.addEventListener("change", () => {
-  // si es sector especial, no se permite
-  if(isSpecialSector(tipoSeleccionado)){
+/* ---------- Quick buttons: Limp/Mov/Baño (independientes de 07/08/09) ---------- */
+quickGrid.querySelectorAll('[data-quick]').forEach(el => {
+  el.addEventListener("click", () => {
+    const q = el.getAttribute("data-quick");
+
+    // toggle
+    if(quick === q){
+      quick = null;
+      el.classList.remove("active");
+    }else{
+      quick = q;
+      quickGrid.querySelectorAll(".option").forEach(o => o.classList.remove("active"));
+      el.classList.add("active");
+    }
+
+    applyQuickUI();
+    validateForm();
+  });
+});
+
+function applyQuickUI(){
+  const isQuick = quick !== null;
+  optionsScreen.classList.toggle("quick-mode", isQuick);
+
+  // reset inputs
+  codeInput.value = "";
+  detailInput.value = "";
+  qtyInput.value = "";
+
+  if(isQuick){
+    // quick anula el flujo de código/cantidad
     noCodeChk.checked = true;
+    noCodeChk.disabled = true;
+
+    // modo no-code (para poder usar detail si es MOV)
+    formBody.classList.remove("mode-code");
+    formBody.classList.add("mode-nocode");
+
+    // ocultar unidad siempre en quick
+    if(unitSlotHeader.contains(unitTitle)) unitSlotHeader.innerHTML = "";
+    if(qtyBox.contains(unitTitle)) qtyBox.removeChild(unitTitle);
+
+    // cantidad nunca en quick
+    formBody.classList.add("qty-hidden");
+    formBody.classList.remove("qty-right");
+
+    // Limp/Baño: no escribir nada
+    if(quick === "LIMP" || quick === "BANO"){
+      detailInput.style.display = "none";
+    }
+
+    // Mov: requiere descripción
+    if(quick === "MOV"){
+      detailInput.style.display = "block";
+      detailInput.placeholder = "Descripción (qué hizo)";
+    }
+  }else{
+    // vuelve normal
+    noCodeChk.disabled = false;
+    detailInput.style.display = "block";
+    detailInput.placeholder = "Detalle / Observación";
+
+    // respetar checkbox para modo
+    if(noCodeChk.checked){
+      formBody.classList.remove("mode-code");
+      formBody.classList.add("mode-nocode");
+      optionsScreen.classList.add("no-code-mode");
+    }else{
+      formBody.classList.remove("mode-nocode");
+      formBody.classList.add("mode-code");
+      optionsScreen.classList.remove("no-code-mode");
+    }
+  }
+
+  applyAccionUI(); // re-evalúa cantidad/unidad según acción
+}
+
+/* ---------- toggle “no hay código” ---------- */
+noCodeChk.addEventListener("change", () => {
+  if(quick !== null){
+    noCodeChk.checked = true; // quick lo fuerza
     return;
   }
 
@@ -154,91 +228,27 @@ btnTermine.addEventListener("click", () => {
   validateForm();
 });
 
-/* ---------- reglas por sector ---------- */
-function applySectorRules(){
-  const special = isSpecialSector(tipoSeleccionado);
-  optionsScreen.classList.toggle("special-sector", special);
-
-  if(special){
-    // en 07/08/09 siempre "No hay código"
-    noCodeChk.checked = true;
-    noCodeChk.disabled = true;
-    optionsScreen.classList.add("no-code-mode");
-
-    // siempre modo no-code para poder usar detail si corresponde
-    formBody.classList.remove("mode-code");
-    formBody.classList.add("mode-nocode");
-
-    // limpiar todo
-    codeInput.value = "";
-    qtyInput.value = "";
-
-    // ocultar unidad siempre en especiales
-    if(unitSlotHeader.contains(unitTitle)) unitSlotHeader.innerHTML = "";
-    if(qtyBox.contains(unitTitle)) qtyBox.removeChild(unitTitle);
-
-    // mostrar/ocultar descripción según cuál:
-    // 07 Limp y 09 Baño => NO escribir nada
-    // 08 Mov => descripción obligatoria
-    if(tipoSeleccionado === 8){
-      detailInput.placeholder = "Descripción (qué hizo)";
-      detailInput.style.display = "block";
-    }else{
-      detailInput.value = "";
-      detailInput.style.display = "none";
-    }
-
-    // cantidad: solo si Terminé? -> NO. Para 07/08/09 nunca.
-    formBody.classList.add("qty-hidden");
-    formBody.classList.remove("qty-right");
-
-  }else{
-    // sector normal
-    noCodeChk.disabled = false;
-    detailInput.style.display = "block";
-    detailInput.placeholder = "Detalle / Observación";
-
-    // aplicar modo según checkbox
-    if(noCodeChk.checked){
-      formBody.classList.remove("mode-code");
-      formBody.classList.add("mode-nocode");
-      optionsScreen.classList.add("no-code-mode");
-    }else{
-      formBody.classList.remove("mode-nocode");
-      formBody.classList.add("mode-code");
-      optionsScreen.classList.remove("no-code-mode");
-    }
-  }
-
-  applyAccionUI();
-}
-
 /* ---------- UI según acción ---------- */
 function applyAccionUI(){
   const noHayCodigo = noCodeChk.checked;
-  const special = isSpecialSector(tipoSeleccionado);
 
-  formBody.classList.remove("qty-hidden", "qty-right");
-
-  // En sectores especiales:
-  // - 07 Limp / 09 Baño: nada para completar (solo acción)
-  // - 08 Mov: solo descripción (y acción)
-  // - cantidad nunca aparece
-  if(special){
+  // si está en quick: cantidad nunca, unidad nunca
+  if(quick !== null){
     formBody.classList.add("qty-hidden");
+    formBody.classList.remove("qty-right");
     if(unitSlotHeader.contains(unitTitle)) unitSlotHeader.innerHTML = "";
     if(qtyBox.contains(unitTitle)) qtyBox.removeChild(unitTitle);
     return;
   }
 
-  // Sector normal
+  formBody.classList.remove("qty-hidden", "qty-right");
+
   if(accion === "TERMINE"){
     // Terminé => cantidad visible
     if(noHayCodigo){
       // no-code => unidad arriba de cantidad centrada
       if(unitTitle.parentElement !== qtyBox) qtyBox.prepend(unitTitle);
       unitSlotHeader.innerHTML = "";
-      // qty visible (sin qty-hidden)
     }else{
       // con código => cantidad derecha + unidad en header
       formBody.classList.add("qty-right");
@@ -250,12 +260,9 @@ function applyAccionUI(){
     formBody.classList.add("qty-hidden");
     if(unitSlotHeader.contains(unitTitle)) unitSlotHeader.innerHTML = "";
     if(qtyBox.contains(unitTitle)) qtyBox.removeChild(unitTitle);
-
-    // Empecé => cantidad no aplica
     qtyInput.value = "";
   }
 
-  // si no eligieron acción aún
   if(accion === null){
     formBody.classList.add("qty-hidden");
     if(unitSlotHeader.contains(unitTitle)) unitSlotHeader.innerHTML = "";
@@ -265,7 +272,7 @@ function applyAccionUI(){
 
 /* ---------- restricciones inputs ---------- */
 codeInput.addEventListener("input", () => {
-  if(!noCodeChk.checked) onlyDigits(codeInput);
+  if(quick === null && !noCodeChk.checked) onlyDigits(codeInput);
   validateForm();
 });
 detailInput.addEventListener("input", validateForm);
@@ -278,51 +285,48 @@ qtyInput.addEventListener("input", () => {
 function validateForm(){
   const areaOk = (tipoSeleccionado !== null);
   const accionOk = (accion === "EMPECE" || accion === "TERMINE");
-  const noHayCodigo = noCodeChk.checked;
-  const special = isSpecialSector(tipoSeleccionado);
-
-  let codOk = false;
-  let cantOk = true;
 
   if(!areaOk){
     sendBtn.disabled = true;
     if(hintText) hintText.textContent = "Elegí el Área";
     return;
   }
-
   if(!accionOk){
     sendBtn.disabled = true;
     if(hintText) hintText.textContent = "Elegí Empecé o Terminé";
     return;
   }
 
-  if(special){
-    // 07 Limp y 09 Baño: nada
-    if(tipoSeleccionado === 7 || tipoSeleccionado === 9){
+  let codOk = true;
+  let cantOk = true;
+
+  // QUICK MODE
+  if(quick !== null){
+    // Limp/Baño: nada
+    if(quick === "LIMP" || quick === "BANO"){
       codOk = true;
+      cantOk = true;
     }
-    // 08 Mov: descripción obligatoria
-    if(tipoSeleccionado === 8){
+    // Mov: requiere descripción
+    if(quick === "MOV"){
       codOk = isFilled(detailInput.value);
+      cantOk = true;
     }
 
-    // cantidad nunca
-    cantOk = true;
-
-  }else{
-    // sector normal: código o descripción según checkbox
-    codOk = noHayCodigo ? isFilled(detailInput.value) : isFilled(codeInput.value);
-
-    // cantidad solo si Terminé
-    cantOk = (accion === "TERMINE") ? isFilled(qtyInput.value) : true;
+    const allOk = areaOk && accionOk && codOk && cantOk;
+    sendBtn.disabled = !allOk;
+    if(hintText) hintText.textContent = allOk ? "Listo para enviar" : "Completá lo que falta";
+    return;
   }
+
+  // NORMAL MODE
+  const noHayCodigo = noCodeChk.checked;
+  codOk = noHayCodigo ? isFilled(detailInput.value) : isFilled(codeInput.value);
+  cantOk = (accion === "TERMINE") ? isFilled(qtyInput.value) : true;
 
   const allOk = areaOk && accionOk && codOk && cantOk;
   sendBtn.disabled = !allOk;
-
-  if(hintText){
-    hintText.textContent = allOk ? "Listo para enviar" : "Completá lo que falta";
-  }
+  if(hintText) hintText.textContent = allOk ? "Listo para enviar" : "Completá lo que falta";
 }
 
 /* ---------- envío: FIX CORS (evita preflight) ---------- */
@@ -357,20 +361,22 @@ sendBtn.addEventListener("click", async () => {
   }
 
   const t = nowAR();
-  const special = isSpecialSector(tipoSeleccionado);
-
   const Sector = sector2(tipoSeleccionado);
   const EmpeceTermine = accionLabel();
 
   let Cod = "";
-  let Descripcion = "";
   let Cant = "";
+  let Descripcion = "";
 
-  if(special){
-    // 07 Limp / 09 Baño: todo vacío
-    if(tipoSeleccionado === 8){
+  if(quick !== null){
+    // Limp/Baño: todo vacío
+    if(quick === "MOV"){
       Descripcion = (detailInput.value || "").trim();
+    } else {
+      Descripcion = ""; // nada
     }
+    // opcional: si querés registrar qué fue quick, lo metemos en Descripcion o Cod.
+    // Por ahora queda vacío tal como pediste.
   }else{
     const noHayCodigo = noCodeChk.checked;
     Cod = noHayCodigo ? "" : (codeInput.value || "").trim();
@@ -405,6 +411,7 @@ sendBtn.addEventListener("click", async () => {
 });
 
 /* ---------- init ---------- */
-applySectorRules();
+optionsScreen.classList.toggle("no-code-mode", noCodeChk.checked);
+applyQuickUI();
 applyAccionUI();
 validateForm();
