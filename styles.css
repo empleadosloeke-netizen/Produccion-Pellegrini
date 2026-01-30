@@ -50,6 +50,19 @@ h2{ text-align:center; margin:10px 0 10px; }
   font-weight:800;
 }
 
+.option-num .num{
+  font-size:18px;
+  font-weight:900;
+  line-height:1.1;
+}
+.option-num .sub{
+  margin-top:6px;
+  font-size:11px;
+  font-weight:700;
+  opacity:.85;
+  line-height:1.1;
+}
+
 .subblock{ margin-top:12px; }
 
 .btn{
@@ -76,7 +89,7 @@ h2{ text-align:center; margin:10px 0 10px; }
   cursor:pointer;
 }
 
-/* Inputs: misma altura que botones */
+/* Inputs */
 .input-box{
   background:#1e293b;
   border-radius:12px;
@@ -91,7 +104,7 @@ h2{ text-align:center; margin:10px 0 10px; }
   box-sizing:border-box;
 }
 
-/* Header pantalla opciones con flecha */
+/* Header pantalla opciones */
 .screen-head{
   display:flex;
   align-items:center;
@@ -183,7 +196,7 @@ h2{ text-align:center; margin:10px 0 10px; }
   grid-template-columns: repeat(3, 1fr);
   gap:var(--grid-gap);
   align-items:start;
-  margin-top:-58px; /* ajustá fino si querés */
+  margin-top:-58px;
   padding-top:0;
 }
 
@@ -221,7 +234,7 @@ h2{ text-align:center; margin:10px 0 10px; }
   text-align:center;
 }
 
-/* SOLO CUANDO NO HAY CÓDIGO: Empecé y Terminé en la misma fila */
+/* NO HAY CÓDIGO: Empecé y Terminé en la misma fila */
 .no-code-mode .actions-col{
   grid-column: 2 / 4;
   display:grid;
@@ -232,7 +245,7 @@ h2{ text-align:center; margin:10px 0 10px; }
 .no-code-mode .actions-col #btnEmpece{ grid-column: 1 / 2; }
 .no-code-mode .actions-col #btnTermine{ grid-column: 2 / 3; }
 
-/* CUANDO ES Limp/Mov/Baño: Empecé y Terminé a la derecha (siempre) */
+/* QUICK: Empecé y Terminé a la derecha (siempre) */
 .quick-mode .actions-col{
   grid-column: 2 / 4;
   display:grid;
@@ -242,3 +255,28 @@ h2{ text-align:center; margin:10px 0 10px; }
 }
 .quick-mode .actions-col #btnEmpece{ grid-column: 1 / 2; }
 .quick-mode .actions-col #btnTermine{ grid-column: 2 / 3; }
+
+/* Panel de estado en pantalla de empleados */
+.status-panel{
+  background:#0b1220;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:12px;
+  padding:10px;
+  margin:10px 0 12px;
+}
+.status-title{
+  font-size:12px;
+  font-weight:800;
+  opacity:.9;
+  margin:6px 0 6px;
+}
+.status-box{
+  background:#111b2e;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:10px;
+  padding:8px;
+  font-size:12px;
+  line-height:1.35;
+  opacity:.95;
+  white-space:pre-line;
+}
