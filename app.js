@@ -98,15 +98,31 @@ backBtn.addEventListener("click", () => {
   validateForm();
 });
 
-/* ---------- sector 01–09 ---------- */
+/* ---------- sector 01–09 (TOGGLE) ---------- */
 tipoGrid.querySelectorAll('[data-tipo]').forEach(el => {
   el.addEventListener("click", () => {
     // si quick está seleccionado, no permitir sector
     if(quick !== null) return;
 
+    const n = Number(el.getAttribute("data-tipo"));
+
+    // si clickeo el mismo sector activo => deseleccionar (para poder ir a quick)
+    if(tipoSeleccionado === n){
+      tipoSeleccionado = null;
+      el.classList.remove("active");
+
+      // re-habilitar quick
+      disableGrid(quickGrid, false);
+
+      applyModes();
+      validateForm();
+      return;
+    }
+
+    // seleccionar sector
     tipoGrid.querySelectorAll(".option").forEach(o => o.classList.remove("active"));
     el.classList.add("active");
-    tipoSeleccionado = Number(el.getAttribute("data-tipo"));
+    tipoSeleccionado = n;
 
     setUnidad(tipoSeleccionado);
 
@@ -229,7 +245,9 @@ function applyModes(){
     // normal: habilita checkbox
     optionsScreen.classList.remove("quick-mode");
     noCodeChk.disabled = false;
-    detailInput.style.display = "block";
+
+    // IMPORTANTE: no forzar display en normal (lo maneja el CSS por mode-code/mode-nocode)
+    detailInput.style.removeProperty("display");
     detailInput.placeholder = "Detalle / Observación";
 
     // respetar checkbox
