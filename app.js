@@ -98,23 +98,28 @@ backBtn.addEventListener("click", () => {
   validateForm();
 });
 
-/* ---------- sector 01–09 (toggle) ---------- */
+/* ---------- sector 01–09 (TOGGLE) ---------- */
 tipoGrid.querySelectorAll('[data-tipo]').forEach(el => {
   el.addEventListener("click", () => {
+    // si quick está seleccionado, no permitir sector
     if(quick !== null) return;
 
     const n = Number(el.getAttribute("data-tipo"));
 
-    // toggle: si clickeo el mismo => deselecciona y habilita quick
+    // si clickeo el mismo sector activo => deseleccionar (para poder ir a quick)
     if(tipoSeleccionado === n){
       tipoSeleccionado = null;
       el.classList.remove("active");
+
+      // re-habilitar quick
       disableGrid(quickGrid, false);
+
       applyModes();
       validateForm();
       return;
     }
 
+    // seleccionar sector
     tipoGrid.querySelectorAll(".option").forEach(o => o.classList.remove("active"));
     el.classList.add("active");
     tipoSeleccionado = n;
@@ -132,6 +137,7 @@ tipoGrid.querySelectorAll('[data-tipo]').forEach(el => {
 /* ---------- quick Limp/Mov/Baño ---------- */
 quickGrid.querySelectorAll('[data-quick]').forEach(el => {
   el.addEventListener("click", () => {
+    // si hay sector seleccionado, no permitir quick
     if(tipoSeleccionado !== null) return;
 
     const q = el.getAttribute("data-quick");
@@ -155,6 +161,7 @@ quickGrid.querySelectorAll('[data-quick]').forEach(el => {
 
 /* ---------- checkbox no code ---------- */
 noCodeChk.addEventListener("change", () => {
+  // si quick está activo, no se puede cambiar
   if(quick !== null){
     noCodeChk.checked = true;
     return;
@@ -200,20 +207,24 @@ btnTermine.addEventListener("click", () => {
 
 /* ---------- aplicar modos (normal vs quick) ---------- */
 function applyModes(){
+  // limpiar inputs para evitar basura
   codeInput.value = "";
   detailInput.value = "";
   qtyInput.value = "";
 
   if(quick !== null){
+    // quick: fuerza no-code (pero sin checkbox editable)
     optionsScreen.classList.add("quick-mode");
     optionsScreen.classList.remove("no-code-mode");
 
     noCodeChk.checked = true;
     noCodeChk.disabled = true;
 
+    // layout: usamos mode-nocode para poder usar detail si MOV
     formBody.classList.remove("mode-code");
     formBody.classList.add("mode-nocode");
 
+    // MOV requiere descripción, Limp/Baño no
     if(quick === "MOV"){
       detailInput.style.display = "block";
       detailInput.placeholder = "Descripción (qué hizo)";
@@ -222,20 +233,24 @@ function applyModes(){
       detailInput.placeholder = "Detalle / Observación";
     }
 
+    // cantidad nunca en quick
     formBody.classList.add("qty-hidden");
     formBody.classList.remove("qty-right");
 
+    // unidad nunca en quick
     if(unitSlotHeader.contains(unitTitle)) unitSlotHeader.innerHTML = "";
     if(qtyBox.contains(unitTitle)) qtyBox.removeChild(unitTitle);
 
   }else{
+    // normal: habilita checkbox
     optionsScreen.classList.remove("quick-mode");
     noCodeChk.disabled = false;
 
-    // NO forzar display en normal (CSS manda)
+    // IMPORTANTE: no forzar display en normal (lo maneja el CSS por mode-code/mode-nocode)
     detailInput.style.removeProperty("display");
     detailInput.placeholder = "Detalle / Observación";
 
+    // respetar checkbox
     if(noCodeChk.checked){
       optionsScreen.classList.add("no-code-mode");
       formBody.classList.remove("mode-code");
@@ -252,7 +267,10 @@ function applyModes(){
 
 /* ---------- UI según acción ---------- */
 function applyAccionUI(){
-  if(quick !== null) return;
+  // quick: ya está fijo
+  if(quick !== null){
+    return;
+  }
 
   const noHayCodigo = noCodeChk.checked;
   formBody.classList.remove("qty-hidden", "qty-right");
@@ -309,6 +327,7 @@ function validateForm(){
     return;
   }
 
+  // quick rules
   if(quick !== null){
     const ok = (quick === "MOV") ? isFilled(detailInput.value) : true;
     sendBtn.disabled = !ok;
@@ -316,6 +335,7 @@ function validateForm(){
     return;
   }
 
+  // normal rules
   const noHayCodigo = noCodeChk.checked;
   const codOk = noHayCodigo ? isFilled(detailInput.value) : isFilled(codeInput.value);
   const cantOk = (accion === "TERMINE") ? isFilled(qtyInput.value) : true;
@@ -325,23 +345,21 @@ function validateForm(){
   if(hintText) hintText.textContent = allOk ? "Listo para enviar" : "Completá lo que falta";
 }
 
-/* ---------- envío (NO-CORS) ---------- */
-/*
-  IMPORTANTE:
-  - mode:"no-cors" evita el bloqueo CORS del navegador.
-  - PERO la respuesta es "opaque": no se puede leer ni saber si guardó.
-  - Para producción con confirmación real, conviene n8n (camino A).
-*/
+/* ---------- envío: FIX CORS (evita preflight) ---------- */
 async function postRow(payload){
-  await fetch(GOOGLE_SHEET_WEBAPP_URL, {
+  const r = await fetch(GOOGLE_SHEET_WEBAPP_URL, {
     method: "POST",
-    mode: "no-cors",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify(payload)
   });
 
-  // No podemos validar respuesta. Si no tiró error, asumimos OK.
-  return { ok: true };
+  const txt = await r.text();
+  let out;
+  try { out = JSON.parse(txt); }
+  catch { out = { ok:false, error:"Respuesta no JSON: " + String(txt).slice(0,180) }; }
+
+  if(!out.ok) throw new Error(out.error || "No se pudo guardar");
+  return out;
 }
 
 sendBtn.addEventListener("click", async () => {
@@ -360,6 +378,7 @@ sendBtn.addEventListener("click", async () => {
   let Descripcion = "";
 
   if(quick !== null){
+    // Limp/Baño: nada; Mov: descripción
     if(quick === "MOV") Descripcion = (detailInput.value || "").trim();
   }else{
     const noHayCodigo = noCodeChk.checked;
@@ -396,4 +415,3 @@ optionsScreen.classList.toggle("no-code-mode", noCodeChk.checked);
 applyModes();
 applyAccionUI();
 validateForm();
-
