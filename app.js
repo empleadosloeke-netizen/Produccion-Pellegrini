@@ -415,3 +415,4 @@ optionsScreen.classList.toggle("no-code-mode", noCodeChk.checked);
 applyModes();
 applyAccionUI();
 validateForm();
+
