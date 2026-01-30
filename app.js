@@ -29,6 +29,19 @@ const unitSlotHeader = document.getElementById("unitSlotHeader");
 const qtyInput = document.getElementById("qtyInput");
 const hintText = document.getElementById("hintText");
 
+/* ===================== LOCAL STORAGE ===================== */
+const LS_LAST2      = "tn_last2_v1";          // últimos 2 envíos (con empleado)
+const LS_NUM        = "tn_last_num_v1";       // {sector:"05", started:true}
+const LS_NUM_PAY    = "tn_last_num_pay_v1";   // payload del último EMPECE numérico (para terminar rápido)
+const LS_DEAD       = "tn_last_dead_v1";      // {dead:"LIMP", started:true}
+
+function lsGet(key, fallback=null){
+  try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+  catch{ return fallback; }
+}
+function lsSet(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
+function lsDel(key){ localStorage.removeItem(key); }
+
 /* ---------- helpers ---------- */
 function onlyDigits(el){
   el.value = (el.value || "").replace(/[^\d]/g, "");
@@ -44,6 +57,7 @@ function onlyNumberWithComma(el){
 }
 function isFilled(str){ return (str || "").trim().length > 0; }
 function sector2(n){ return String(n).padStart(2,"0"); }
+
 function nowAR(){
   const d = new Date();
   const Dia  = d.toLocaleDateString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" });
@@ -65,6 +79,252 @@ function disableGrid(gridEl, disabled){
     if(disabled) o.classList.add("disabled");
     else o.classList.remove("disabled");
   });
+}
+
+/* ---------- panel de estado (inyectado por JS) ---------- */
+function ensureStatusPanel(){
+  let box = document.getElementById("statusPanel");
+  if(box) return box;
+
+  box = document.createElement("div");
+  box.id = "statusPanel";
+  box.style.cssText =
+    "margin:10px 0 8px;padding:10px;border-radius:12px;background:#0b1220;border:1px solid rgba(255,255,255,.08);font-size:12px;line-height:1.35;opacity:.95";
+
+  const title = document.createElement("div");
+  title.style.cssText = "font-weight:800;margin-bottom:6px;font-size:12px;opacity:.9";
+  title.textContent = "Últimos registros";
+
+  const last2 = document.createElement("div");
+  last2.id = "statusLast2";
+  last2.style.cssText = "display:flex;flex-direction:column;gap:4px;margin-bottom:8px;";
+
+  const quickAction = document.createElement("div");
+  quickAction.id = "statusQuickAction";
+  quickAction.style.cssText = "margin:8px 0 10px; display:none;";
+
+  const locks = document.createElement("div");
+  locks.id = "statusLocks";
+  locks.style.cssText = "opacity:.85";
+
+  box.appendChild(title);
+  box.appendChild(last2);
+  box.appendChild(quickAction);
+  box.appendChild(locks);
+
+  const anchor = optionsScreen.querySelector(".screen-head");
+  anchor.insertAdjacentElement("afterend", box);
+  return box;
+}
+
+function formatMiniRow(r){
+  const parts = [
+    r.Hora || "",
+    r.Empleado || "",
+    r.Sector || "",
+    (r.Cod ? `Cod:${r.Cod}` : ""),
+    (r.EmpeceTermine || ""),
+    (r.Descripcion ? `“${r.Descripcion}”` : "")
+  ].filter(Boolean);
+  return parts.join(" · ");
+}
+
+function getLocks(){
+  return {
+    dead: lsGet(LS_DEAD, null),
+    num:  lsGet(LS_NUM, null),
+    numPay: lsGet(LS_NUM_PAY, null)
+  };
+}
+
+function pushLast2Rows(rows){
+  const cur = lsGet(LS_LAST2, []);
+  const next = [...cur, ...rows].slice(-2);
+  lsSet(LS_LAST2, next);
+}
+
+function renderStatus(){
+  ensureStatusPanel();
+
+  const last2 = lsGet(LS_LAST2, []);
+  const { dead, num, numPay } = getLocks();
+
+  const $last2 = document.getElementById("statusLast2");
+  const $locks = document.getElementById("statusLocks");
+  const $qa    = document.getElementById("statusQuickAction");
+
+  $last2.innerHTML = "";
+  if(!last2.length){
+    const d = document.createElement("div");
+    d.style.opacity = ".7";
+    d.textContent = "Sin registros aún.";
+    $last2.appendChild(d);
+  }else{
+    last2.slice(-2).reverse().forEach(r => {
+      const d = document.createElement("div");
+      d.textContent = formatMiniRow(r);
+      $last2.appendChild(d);
+    });
+  }
+
+  // Botón "Terminar rápido" si hay sector iniciado (y no hay tiempo muerto bloqueando)
+  $qa.innerHTML = "";
+  $qa.style.display = "none";
+  if(!dead?.started && num?.started && numPay?.sector === num.sector){
+    $qa.style.display = "block";
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = `Terminar rápido sector ${num.sector}`;
+    btn.style.cssText =
+      "width:100%;padding:12px;border-radius:12px;border:none;background:#1e293b;color:#fff;font-weight:800;cursor:pointer;";
+
+    btn.addEventListener("click", () => {
+      // fuerza selección sector y carga datos del último EMPECE de ese sector
+      quick = null;
+      quickGrid.querySelectorAll(".option").forEach(o => o.classList.remove("active"));
+
+      const n = Number(num.sector);
+      tipoSeleccionado = n;
+      tipoGrid.querySelectorAll(".option").forEach(o => {
+        const nn = Number(o.getAttribute("data-tipo"));
+        o.classList.toggle("active", nn === n);
+      });
+
+      setUnidad(n);
+
+      // restaurar modo código/no-código según último EMPECE
+      const usedNoCode = !!numPay.usedNoCode;
+      noCodeChk.checked = usedNoCode;
+      optionsScreen.classList.toggle("no-code-mode", usedNoCode);
+
+      if(usedNoCode){
+        formBody.classList.remove("mode-code");
+        formBody.classList.add("mode-nocode");
+        detailInput.value = numPay.Descripcion || "";
+        codeInput.value = "";
+      }else{
+        formBody.classList.remove("mode-nocode");
+        formBody.classList.add("mode-code");
+        codeInput.value = (numPay.Cod || "");
+        detailInput.value = "";
+      }
+
+      // poner acción Terminé
+      accion = "TERMINE";
+      btnTermine.classList.add("active");
+      btnEmpece.classList.remove("active");
+
+      // cantidad vacía para que la carguen
+      qtyInput.value = "";
+      applyAccionUI();
+      applyLocksToUI();
+      validateForm();
+      qtyInput.focus();
+    });
+
+    $qa.appendChild(btn);
+  }
+
+  const lines = [];
+  if(dead?.started){
+    lines.push(`⛔ Tiempo muerto en curso: ${dead.dead}. Solo podés marcar “Terminé” en ese mismo.`);
+  }else{
+    lines.push(`✅ Tiempo muerto: libre`);
+  }
+
+  if(num?.started){
+    lines.push(`⛔ Sector en curso: ${num.sector}. Solo podés terminar ese sector (pero sí podés usar Limp/Mov/Baño).`);
+  }else{
+    lines.push(`✅ Sector 01–09: libre`);
+  }
+
+  $locks.innerHTML = lines.map(x => `<div>${x}</div>`).join("");
+}
+
+/* ---------- etiquetas dentro de 01-09 ---------- */
+function applyTipoLabels(){
+  const labels = {
+    1:"Corte", 2:"Grampeado", 3:"Encolado",
+    4:"Montaje", 5:"Gancho", 6:"Emblistado",
+    7:"Contraido", 8:"Deco", 9:"Loeke"
+  };
+
+  tipoGrid.querySelectorAll("[data-tipo]").forEach(el => {
+    const n = Number(el.getAttribute("data-tipo"));
+    const code = String(n).padStart(2,"0");
+    const lab = labels[n] || "";
+    el.innerHTML = `
+      <div style="font-size:18px;font-weight:800;">${code}</div>
+      <div style="font-size:11px;opacity:.75;margin-top:4px;">${lab}</div>
+    `;
+  });
+}
+
+/* ---------- reglas de bloqueo ---------- */
+function applyLocksToUI(){
+  const { dead, num } = getLocks();
+
+  // Si hay tiempo muerto iniciado: bloquear TODO excepto ese quick + Terminé
+  if(dead?.started){
+    disableGrid(tipoGrid, true);
+
+    quickGrid.querySelectorAll(".option").forEach(o => {
+      const q = o.getAttribute("data-quick");
+      if(q === dead.dead) o.classList.remove("disabled");
+      else o.classList.add("disabled");
+    });
+
+    // forzar quick
+    quick = dead.dead;
+    quickGrid.querySelectorAll(".option").forEach(o => o.classList.toggle("active", o.getAttribute("data-quick") === dead.dead));
+
+    // limpiar sector
+    tipoSeleccionado = null;
+    tipoGrid.querySelectorAll(".option").forEach(o => o.classList.remove("active"));
+
+    applyModes();
+
+    // solo Terminé
+    accion = "TERMINE";
+    btnTermine.classList.add("active");
+    btnEmpece.classList.remove("active");
+    btnEmpece.disabled = true;
+    btnTermine.disabled = false;
+
+    validateForm();
+    return;
+  } else {
+    btnEmpece.disabled = false;
+    btnTermine.disabled = false;
+  }
+
+  // Si hay sector iniciado: solo habilitar ese sector, pero quick permitido
+  if(num?.started){
+    disableGrid(quickGrid, false);
+
+    tipoGrid.querySelectorAll(".option").forEach(o => {
+      const n = Number(o.getAttribute("data-tipo"));
+      const code = sector2(n);
+      if(code === num.sector) o.classList.remove("disabled");
+      else o.classList.add("disabled");
+    });
+  } else {
+    // libre total (según estado actual)
+    quickGrid.querySelectorAll(".option").forEach(o => o.classList.remove("disabled"));
+    tipoGrid.querySelectorAll(".option").forEach(o => o.classList.remove("disabled"));
+
+    if(quick !== null) disableGrid(tipoGrid, true);
+    if(tipoSeleccionado !== null) disableGrid(quickGrid, true);
+  }
+
+  validateForm();
+}
+
+function initLocalStateUI(){
+  applyTipoLabels();
+  renderStatus();
+  applyLocksToUI();
 }
 
 /* ---------- empleados ---------- */
@@ -90,6 +350,8 @@ acceptEmpleadoBtn.addEventListener("click", () => {
   empleadoScreen.classList.add("hidden");
   optionsScreen.classList.remove("hidden");
   validateForm();
+  renderStatus();
+  applyLocksToUI();
 });
 
 backBtn.addEventListener("click", () => {
@@ -106,15 +368,13 @@ tipoGrid.querySelectorAll('[data-tipo]').forEach(el => {
 
     const n = Number(el.getAttribute("data-tipo"));
 
-    // si clickeo el mismo sector activo => deseleccionar (para poder ir a quick)
+    // si clickeo el mismo sector activo => deseleccionar
     if(tipoSeleccionado === n){
       tipoSeleccionado = null;
       el.classList.remove("active");
-
-      // re-habilitar quick
       disableGrid(quickGrid, false);
-
       applyModes();
+      applyLocksToUI();
       validateForm();
       return;
     }
@@ -125,11 +385,10 @@ tipoGrid.querySelectorAll('[data-tipo]').forEach(el => {
     tipoSeleccionado = n;
 
     setUnidad(tipoSeleccionado);
-
-    // si elijo sector => bloqueo quick
     disableGrid(quickGrid, true);
 
     applyModes();
+    applyLocksToUI();
     validateForm();
   });
 });
@@ -141,6 +400,7 @@ quickGrid.querySelectorAll('[data-quick]').forEach(el => {
     if(tipoSeleccionado !== null) return;
 
     const q = el.getAttribute("data-quick");
+
     if(quick === q){
       quick = null;
       el.classList.remove("active");
@@ -149,12 +409,11 @@ quickGrid.querySelectorAll('[data-quick]').forEach(el => {
       quick = q;
       quickGrid.querySelectorAll(".option").forEach(o => o.classList.remove("active"));
       el.classList.add("active");
-
-      // si elijo quick => bloqueo sector
       disableGrid(tipoGrid, true);
     }
 
     applyModes();
+    applyLocksToUI();
     validateForm();
   });
 });
@@ -182,6 +441,7 @@ noCodeChk.addEventListener("change", () => {
   }
 
   applyAccionUI();
+  applyLocksToUI();
   validateForm();
 });
 
@@ -193,6 +453,7 @@ btnEmpece.addEventListener("click", () => {
 
   qtyInput.value = "";
   applyAccionUI();
+  applyLocksToUI();
   validateForm();
 });
 
@@ -202,6 +463,7 @@ btnTermine.addEventListener("click", () => {
   btnEmpece.classList.remove("active");
 
   applyAccionUI();
+  applyLocksToUI();
   validateForm();
 });
 
@@ -246,7 +508,7 @@ function applyModes(){
     optionsScreen.classList.remove("quick-mode");
     noCodeChk.disabled = false;
 
-    // IMPORTANTE: no forzar display en normal (lo maneja el CSS por mode-code/mode-nocode)
+    // no forzar display en normal (lo maneja el CSS por mode-code/mode-nocode)
     detailInput.style.removeProperty("display");
     detailInput.placeholder = "Detalle / Observación";
 
@@ -311,8 +573,23 @@ qtyInput.addEventListener("input", () => {
   validateForm();
 });
 
-/* ---------- validación ---------- */
+/* ---------- validación (con locks) ---------- */
 function validateForm(){
+  const { dead, num } = getLocks();
+
+  // Si hay tiempo muerto iniciado, solo se puede terminar ese mismo
+  if(dead?.started){
+    const okArea = (quick === dead.dead);
+    const okAcc  = (accion === "TERMINE");
+    const okMov  = (dead.dead === "MOV") ? isFilled(detailInput.value) : true;
+
+    const allOk = okArea && okAcc && okMov;
+    sendBtn.disabled = !allOk;
+    if(hintText) hintText.textContent = allOk ? "Listo para finalizar tiempo muerto" : "Debés terminar el tiempo muerto en curso";
+    return;
+  }
+
+  // Reglas normales
   const areaOk = (tipoSeleccionado !== null) || (quick !== null);
   const accionOk = (accion === "EMPECE" || accion === "TERMINE");
 
@@ -325,6 +602,16 @@ function validateForm(){
     sendBtn.disabled = true;
     if(hintText) hintText.textContent = "Elegí Empecé o Terminé";
     return;
+  }
+
+  // Si hay sector iniciado, NO permitir terminar otro sector distinto (pero quick sí)
+  if(num?.started && quick === null){
+    const sel = sector2(tipoSeleccionado);
+    if(sel !== num.sector){
+      sendBtn.disabled = true;
+      if(hintText) hintText.textContent = `Debés terminar el sector ${num.sector} (o usar Limp/Mov/Baño).`;
+      return;
+    }
   }
 
   // quick rules
@@ -345,7 +632,7 @@ function validateForm(){
   if(hintText) hintText.textContent = allOk ? "Listo para enviar" : "Completá lo que falta";
 }
 
-/* ---------- envío: FIX CORS (evita preflight) ---------- */
+/* ---------- envío ---------- */
 async function postRow(payload){
   const r = await fetch(GOOGLE_SHEET_WEBAPP_URL, {
     method: "POST",
@@ -369,6 +656,24 @@ sendBtn.addEventListener("click", async () => {
     return;
   }
 
+  // reglas consistencia
+  const locks = getLocks();
+
+  if(locks.dead?.started){
+    if(!(quick === locks.dead.dead && accion === "TERMINE")){
+      alert(`Tenés un tiempo muerto en curso (${locks.dead.dead}). Debés terminar ese mismo.`);
+      return;
+    }
+  }
+
+  if(locks.num?.started && quick === null){
+    const sel = sector2(tipoSeleccionado);
+    if(sel !== locks.num.sector){
+      alert(`Tenés un sector en curso (${locks.num.sector}). Debés terminar ese sector (o usar Limp/Mov/Baño).`);
+      return;
+    }
+  }
+
   const t = nowAR();
   const Sector = (quick !== null) ? quick : sector2(tipoSeleccionado);
   const EmpeceTermine = accionLabel();
@@ -376,12 +681,14 @@ sendBtn.addEventListener("click", async () => {
   let Cod = "";
   let Cant = "";
   let Descripcion = "";
+  let usedNoCode = false;
 
   if(quick !== null){
     // Limp/Baño: nada; Mov: descripción
     if(quick === "MOV") Descripcion = (detailInput.value || "").trim();
   }else{
     const noHayCodigo = noCodeChk.checked;
+    usedNoCode = noHayCodigo;
     Cod = noHayCodigo ? "" : (codeInput.value || "").trim();
     Descripcion = noHayCodigo ? (detailInput.value || "").trim() : "";
     Cant = (accion === "TERMINE") ? (qtyInput.value || "").trim() : "";
@@ -399,11 +706,69 @@ sendBtn.addEventListener("click", async () => {
 
   try{
     sendBtn.disabled = true;
+
+    const rowsForLast2 = [];
+
     for(const emp of empleadosSeleccionados){
-      await postRow({ ...base, Empleado: emp });
+      const payload = { ...base, Empleado: emp };
+      await postRow(payload);
+
+      rowsForLast2.push({
+        Hora: payload.Hora,
+        Empleado: payload.Empleado,
+        Sector: payload.Sector,
+        Cod: payload.Cod,
+        EmpeceTermine: payload.EmpeceTermine,
+        Descripcion: payload.Descripcion
+      });
     }
+
+    // guardar últimos 2 (con empleado)
+    pushLast2Rows(rowsForLast2);
+
+    // ---- guardar / liberar estados ----
+
+    // Tiempo muerto
+    if(quick !== null){
+      if(accion === "EMPECE"){
+        lsSet(LS_DEAD, { dead: quick, started: true, at: Date.now() });
+      }else if(accion === "TERMINE"){
+        const d = lsGet(LS_DEAD, null);
+        if(d?.started && d.dead === quick) lsDel(LS_DEAD);
+      }
+    }
+
+    // Sector numérico
+    if(quick === null && tipoSeleccionado !== null){
+      const sec = sector2(tipoSeleccionado);
+
+      if(accion === "EMPECE"){
+        lsSet(LS_NUM, { sector: sec, started: true, at: Date.now() });
+
+        // guardar payload de "empecé" para terminar rápido
+        lsSet(LS_NUM_PAY, {
+          sector: sec,
+          Cod,
+          Descripcion,
+          usedNoCode,
+          at: Date.now()
+        });
+
+      }else if(accion === "TERMINE"){
+        const n = lsGet(LS_NUM, null);
+        if(n?.started && n.sector === sec) lsDel(LS_NUM);
+
+        const p = lsGet(LS_NUM_PAY, null);
+        if(p?.sector === sec) lsDel(LS_NUM_PAY);
+      }
+    }
+
+    renderStatus();
+    applyLocksToUI();
+
     alert("Reporte enviado correctamente");
     location.reload();
+
   }catch(e){
     alert("No se pudo enviar. Revisá WiFi o avisá al supervisor.");
     sendBtn.disabled = false;
@@ -416,3 +781,4 @@ applyModes();
 applyAccionUI();
 validateForm();
 
+initLocalStateUI();
