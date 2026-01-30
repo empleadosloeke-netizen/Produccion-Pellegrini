@@ -36,7 +36,7 @@
         <div class="screen-head-title">Seleccioná</div>
       </div>
 
-      <!-- Sector 01–09 (vuelve como antes: solo números) -->
+      <!-- Sector 01–09 -->
       <div class="grid" id="tipoGrid">
         <div class="option" data-tipo="1">01</div>
         <div class="option" data-tipo="2">02</div>
@@ -49,9 +49,8 @@
         <div class="option" data-tipo="9">09</div>
       </div>
 
-      <!-- Botones extra: Limp / Mov / Baño (son independientes) -->
+      <!-- Limp / Mov / Baño (sin título) -->
       <div class="subblock">
-        <div class="sub-title">Acción rápida</div>
         <div class="grid" id="quickGrid">
           <div class="option option-small" data-quick="LIMP">Limp</div>
           <div class="option option-small" data-quick="MOV">Mov</div>
@@ -61,9 +60,8 @@
 
       <div class="form-row">
 
-        <!-- CABECERA -->
         <div class="form-head">
-          <div class="head-left" id="headLeft">
+          <div class="head-left">
             <strong>Cod.</strong>
 
             <label class="nocode-label">
@@ -82,7 +80,7 @@
           </div>
         </div>
 
-        <!-- CUERPO -->
+        <!-- cuerpo -->
         <div id="formBody" class="form-body mode-code qty-hidden">
           <input id="codeInput" class="input-box" placeholder="Código" inputmode="numeric" autocomplete="off">
           <input id="detailInput" class="input-box" placeholder="Detalle / Observación" autocomplete="off">
@@ -92,7 +90,7 @@
           </div>
         </div>
 
-        <div class="reminder" id="reminderText">Recordar volver a enviar al finalizar</div>
+        <div class="reminder">Recordar volver a enviar al finalizar</div>
 
         <button id="sendBtn" class="btn" disabled>Enviar reporte</button>
         <div class="hint" id="hintText">Completá para habilitar “Enviar”</div>
