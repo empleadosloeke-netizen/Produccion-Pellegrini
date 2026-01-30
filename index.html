@@ -51,7 +51,7 @@
 
       <div class="form-row">
 
-        <!-- CABECERA: Cod + Acciones (vertical) + Unidad -->
+        <!-- CABECERA: Cod + Acciones (vertical o 2-col en no-code) + Unidad -->
         <div class="form-head">
           <div class="head-left">
             <strong>Cod.</strong>
@@ -62,7 +62,7 @@
             </label>
           </div>
 
-          <div class="actions-col">
+          <div class="actions-col" id="actionsCol">
             <button id="btnEmpece" class="action-btn" type="button">Empecé</button>
             <button id="btnTermine" class="action-btn" type="button">Terminé</button>
           </div>
@@ -72,15 +72,11 @@
           </div>
         </div>
 
-        <!-- CUERPO: inputs en grilla 3 columnas -->
+        <!-- CUERPO -->
         <div id="formBody" class="form-body mode-code qty-hidden">
-          <!-- Código (solo números cuando hay código) -->
           <input id="codeInput" class="input-box" placeholder="Código" inputmode="numeric" autocomplete="off">
-
-          <!-- Detalle / Observación (solo cuando NO hay código) -->
           <input id="detailInput" class="input-box" placeholder="Detalle / Observación" autocomplete="off">
 
-          <!-- Cantidad -->
           <div id="qtyBox" class="qtyBox">
             <input id="qtyInput" class="input-box" placeholder="Cantidad" inputmode="decimal" autocomplete="off">
           </div>
