@@ -31,9 +31,9 @@ const hintText = document.getElementById("hintText");
 
 /* ===================== LOCAL STORAGE ===================== */
 const LS_LAST2_BASE   = "tn_last2_v1";
-const LS_NUM_BASE     = "tn_last_num_v1";
-const LS_NUM_PAY_BASE = "tn_last_num_pay_v1";
-const LS_DEAD_BASE    = "tn_last_dead_v1";
+const LS_NUM_BASE     = "tn_last_num_v1";       // {sector:"05", started:true, hsInicio:"12:01:02"}
+const LS_NUM_PAY_BASE = "tn_last_num_pay_v1";   // payload del último EMPECE numérico (para terminar rápido)
+const LS_DEAD_BASE    = "tn_last_dead_v1";      // {dead:"LIMP", started:true, hsInicio:"..."}
 
 function lsGet(key, fallback=null){
   try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
@@ -53,6 +53,14 @@ function lsKey(base){
 function lsGetK(base, fallback=null){ return lsGet(lsKey(base), fallback); }
 function lsSetK(base, val){ lsSet(lsKey(base), val); }
 function lsDelK(base){ lsDel(lsKey(base)); }
+
+function getLocks(){
+  return {
+    dead:   lsGetK(LS_DEAD_BASE, null),
+    num:    lsGetK(LS_NUM_BASE, null),
+    numPay: lsGetK(LS_NUM_PAY_BASE, null)
+  };
+}
 
 /* ===================== HELPERS ===================== */
 function onlyDigits(el){
@@ -91,14 +99,6 @@ function disableGrid(gridEl, disabled){
     if(disabled) o.classList.add("disabled");
     else o.classList.remove("disabled");
   });
-}
-
-function getLocks(){
-  return {
-    dead:   lsGetK(LS_DEAD_BASE, null),
-    num:    lsGetK(LS_NUM_BASE, null),
-    numPay: lsGetK(LS_NUM_PAY_BASE, null)
-  };
 }
 
 /* ===================== PANEL UI (inyectado) ===================== */
@@ -194,7 +194,7 @@ function renderStatus(){
     });
   }
 
-  // Botón Terminar rápido
+  // Botón Terminar rápido (solo si no hay tiempo muerto bloqueando)
   $qa.innerHTML = "";
   $qa.style.display = "none";
   if(!dead?.started && num?.started && numPay?.sector === num.sector){
@@ -207,7 +207,7 @@ function renderStatus(){
       "width:100%;padding:12px;border-radius:12px;border:none;background:#1e293b;color:#fff;font-weight:800;cursor:pointer;";
 
     btn.addEventListener("click", () => {
-      // pasar a pantalla opciones si estamos en empleados
+      // pasar a opciones si estamos en empleados
       empleadoScreen.classList.add("hidden");
       optionsScreen.classList.remove("hidden");
 
@@ -229,7 +229,6 @@ function renderStatus(){
       noCodeChk.checked = usedNoCode;
       optionsScreen.classList.toggle("no-code-mode", usedNoCode);
 
-      // aplicar clases de layout
       if(usedNoCode){
         formBody.classList.remove("mode-code");
         formBody.classList.add("mode-nocode");
@@ -718,7 +717,24 @@ sendBtn.addEventListener("click", async () => {
     Cant = (accion === "TERMINE") ? (qtyInput.value || "").trim() : "";
   }
 
-  const base = { Dia: t.Dia, Hora: t.Hora, Sector, Cod, EmpeceTermine, Cant, Descripcion };
+  // ====== HsInicio SOLO para "Terminé" ======
+  let HsInicio = "";
+  if(accion === "TERMINE"){
+    if(quick !== null){
+      // terminar tiempo muerto
+      if(locks.dead?.started && locks.dead.dead === quick){
+        HsInicio = locks.dead.hsInicio || "";
+      }
+    }else{
+      // terminar sector 01-09
+      const sec = sector2(tipoSeleccionado);
+      if(locks.num?.started && locks.num.sector === sec){
+        HsInicio = locks.num.hsInicio || "";
+      }
+    }
+  }
+
+  const base = { Dia: t.Dia, Hora: t.Hora, Sector, Cod, EmpeceTermine, Cant, Descripcion, HsInicio };
 
   try{
     sendBtn.disabled = true;
@@ -741,22 +757,22 @@ sendBtn.addEventListener("click", async () => {
     // últimos 2 (por combinación)
     pushLast2Rows(rowsForLast2);
 
-    // tiempo muerto (por combinación)
+    // tiempo muerto (por combinación) + hsInicio cuando EMPECE
     if(quick !== null){
       if(accion === "EMPECE"){
-        lsSetK(LS_DEAD_BASE, { dead: quick, started: true, at: Date.now() });
+        lsSetK(LS_DEAD_BASE, { dead: quick, started: true, hsInicio: base.Hora, at: Date.now() });
       }else if(accion === "TERMINE"){
         const d = lsGetK(LS_DEAD_BASE, null);
         if(d?.started && d.dead === quick) lsDelK(LS_DEAD_BASE);
       }
     }
 
-    // sector numérico (por combinación)
+    // sector numérico (por combinación) + hsInicio cuando EMPECE
     if(quick === null && tipoSeleccionado !== null){
       const sec = sector2(tipoSeleccionado);
 
       if(accion === "EMPECE"){
-        lsSetK(LS_NUM_BASE, { sector: sec, started: true, at: Date.now() });
+        lsSetK(LS_NUM_BASE, { sector: sec, started: true, hsInicio: base.Hora, at: Date.now() });
         lsSetK(LS_NUM_PAY_BASE, { sector: sec, Cod, Descripcion, usedNoCode, at: Date.now() });
       }else if(accion === "TERMINE"){
         const n = lsGetK(LS_NUM_BASE, null);
@@ -787,6 +803,6 @@ validateForm();
 
 initLocalStateUI();
 
-// para que se vea el panel en pantalla empleados al abrir
+// mostrar panel en pantalla empleados al abrir
 renderStatus();
 applyLocksToUI();
