@@ -14,6 +14,15 @@
     <div id="empleadoScreen">
       <h2>Seleccioná hasta 2 nombres</h2>
 
+      <!-- panel últimos envíos / estados -->
+      <div class="status-panel">
+        <div class="status-title">Últimos 2 reportes</div>
+        <div id="lastMsgsBox" class="status-box">Sin registros</div>
+
+        <div class="status-title">Estado actual</div>
+        <div id="stateBox" class="status-box">Sin bloqueos</div>
+      </div>
+
       <div class="grid">
         <div class="option" data-emp="Lautaro Durante">Lautaro Durante</div>
         <div class="option" data-emp="Javier Burgos">Javier Burgos</div>
@@ -38,18 +47,18 @@
 
       <!-- Sector 01–09 -->
       <div class="grid" id="tipoGrid">
-        <div class="option" data-tipo="1">01</div>
-        <div class="option" data-tipo="2">02</div>
-        <div class="option" data-tipo="3">03</div>
-        <div class="option" data-tipo="4">04</div>
-        <div class="option" data-tipo="5">05</div>
-        <div class="option" data-tipo="6">06</div>
-        <div class="option" data-tipo="7">07</div>
-        <div class="option" data-tipo="8">08</div>
-        <div class="option" data-tipo="9">09</div>
+        <div class="option option-num" data-tipo="1"><div class="num">01</div><div class="sub">Corte</div></div>
+        <div class="option option-num" data-tipo="2"><div class="num">02</div><div class="sub">Grampeado</div></div>
+        <div class="option option-num" data-tipo="3"><div class="num">03</div><div class="sub">Encolado</div></div>
+        <div class="option option-num" data-tipo="4"><div class="num">04</div><div class="sub">Montaje</div></div>
+        <div class="option option-num" data-tipo="5"><div class="num">05</div><div class="sub">Gancho</div></div>
+        <div class="option option-num" data-tipo="6"><div class="num">06</div><div class="sub">Emblistado</div></div>
+        <div class="option option-num" data-tipo="7"><div class="num">07</div><div class="sub">Contraido</div></div>
+        <div class="option option-num" data-tipo="8"><div class="num">08</div><div class="sub">Deco</div></div>
+        <div class="option option-num" data-tipo="9"><div class="num">09</div><div class="sub">Loeke</div></div>
       </div>
 
-      <!-- Limp / Mov / Baño (sin título) -->
+      <!-- Limp / Mov / Baño -->
       <div class="subblock">
         <div class="grid" id="quickGrid">
           <div class="option option-small" data-quick="LIMP">Limp</div>
@@ -59,7 +68,6 @@
       </div>
 
       <div class="form-row">
-
         <div class="form-head">
           <div class="head-left">
             <strong>Cod.</strong>
