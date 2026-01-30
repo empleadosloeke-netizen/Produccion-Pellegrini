@@ -39,21 +39,18 @@ h2{ text-align:center; margin:10px 0 10px; }
 }
 .option.active{ background:#16a34a; }
 
-/* 07/08/09 con dos líneas */
-.opt-two{
+.option-small{
   padding:14px 5px;
-}
-.opt-num{
-  font-size:18px;
-  font-weight:900;
-  line-height:1.1;
-}
-.opt-sub{
-  margin-top:6px;
-  font-size:12px;
-  opacity:.85;
+  font-size:14px;
   font-weight:800;
-  letter-spacing:.2px;
+}
+
+.subblock{ margin-top:12px; }
+.sub-title{
+  font-size:12px;
+  opacity:.8;
+  margin:0 0 6px 2px;
+  font-weight:800;
 }
 
 .btn{
@@ -164,7 +161,7 @@ h2{ text-align:center; margin:10px 0 10px; }
   text-align:center;
 }
 .action-btn.active{ background:#16a34a; }
-.action-btn:disabled{ opacity:.6; cursor:not-allowed; }
+.action-btn:disabled{ opacity:.55; cursor:not-allowed; }
 
 .head-right{
   display:flex;
@@ -235,8 +232,8 @@ h2{ text-align:center; margin:10px 0 10px; }
 .no-code-mode .actions-col #btnEmpece{ grid-column: 1 / 2; }
 .no-code-mode .actions-col #btnTermine{ grid-column: 2 / 3; }
 
-/* MODO ESPECIAL 07/08/09: ocultar “Cod.” y checkbox visualmente (no desaparece el grid) */
-.special-sector .head-left{
-  opacity: .25;
+/* Modo Quick (Limp/Mov/Baño): escondemos “Cod.” y checkbox visualmente */
+.quick-mode .head-left{
+  opacity:.25;
   pointer-events:none;
 }
