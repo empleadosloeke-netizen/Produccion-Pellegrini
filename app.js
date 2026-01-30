@@ -1,10 +1,8 @@
 const GOOGLE_SHEET_WEBAPP_URL =
-  "https://script.google.com/macros/s/AKfycbyx3BgnhoWqEWSlYfKC6SrPEPqV9BxOoQtLbqRdzokhdCMAgbLwICtq3zmqlE6-XBgb/exec";
+  "https://script.google.com/macros/s/AKfycbyvUBHcjf8pl-9wOZK7ADTYiVlLXr49h-dC6f_WH4JpQDpU9LibIT_952x9WDiuEb-LfQ/exec";
 
 let empleadosSeleccionados = [];
 let tipoSeleccionado = null;
-
-// SIEMPRE deben elegir (aunque “no hay código”)
 let accion = null; // "EMPECE" | "TERMINE" | null
 
 const empleadoScreen = document.getElementById("empleadoScreen");
@@ -29,11 +27,10 @@ const unitSlotHeader = document.getElementById("unitSlotHeader");
 const qtyInput = document.getElementById("qtyInput");
 const hintText = document.getElementById("hintText");
 
-/* ---------------- helpers input ---------------- */
+/* ---------- helpers ---------- */
 function onlyDigits(el){
   el.value = (el.value || "").replace(/[^\d]/g, "");
 }
-
 function onlyNumberWithComma(el){
   let v = (el.value || "");
   v = v.replace(/[^\d,]/g, "");
@@ -43,15 +40,8 @@ function onlyNumberWithComma(el){
   }
   el.value = v;
 }
-
-function isFilled(str){
-  return (str || "").trim().length > 0;
-}
-
-function sector2(n){
-  return String(n).padStart(2,"0");
-}
-
+function isFilled(str){ return (str || "").trim().length > 0; }
+function sector2(n){ return String(n).padStart(2,"0"); }
 function nowAR(){
   const d = new Date();
   const Dia  = d.toLocaleDateString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" });
@@ -59,7 +49,7 @@ function nowAR(){
   return { Dia, Hora };
 }
 
-/* ---------------- empleados ---------------- */
+/* ---------- empleados ---------- */
 document.querySelectorAll('[data-emp]').forEach(el => {
   el.addEventListener("click", () => {
     const n = el.getAttribute("data-emp");
@@ -90,7 +80,7 @@ backBtn.addEventListener("click", () => {
   validateForm();
 });
 
-/* ---------------- sector 01–09 ---------------- */
+/* ---------- sector ---------- */
 tipoGrid.querySelectorAll('[data-tipo]').forEach(el => {
   el.addEventListener("click", () => {
     tipoGrid.querySelectorAll(".option").forEach(o => o.classList.remove("active"));
@@ -107,42 +97,33 @@ function setUnidad(n){
   if(n === 9) unitTitle.innerText = "KG";
 }
 
-/* ---------------- toggle “no hay código” ---------------- */
+/* ---------- toggle no code ---------- */
 noCodeChk.addEventListener("change", () => {
   const noHayCodigo = noCodeChk.checked;
 
-  // clase para CSS (Terminé al lado de Empecé solo en no-code)
   optionsScreen.classList.toggle("no-code-mode", noHayCodigo);
 
-  // limpiar inputs según modo
   if(noHayCodigo){
     codeInput.value = "";
-  }else{
-    detailInput.value = "";
-    onlyDigits(codeInput);
-  }
-
-  // cambiar modo layout (solo cambia qué input se ve)
-  if(noHayCodigo){
     formBody.classList.remove("mode-code");
     formBody.classList.add("mode-nocode");
   }else{
+    detailInput.value = "";
+    onlyDigits(codeInput);
     formBody.classList.remove("mode-nocode");
     formBody.classList.add("mode-code");
   }
 
-  // aplicar UI según acción elegida (y reglas de cantidad)
   applyAccionUI();
   validateForm();
 });
 
-/* ---------------- Empecé / Terminé ---------------- */
+/* ---------- Empecé / Terminé ---------- */
 btnEmpece.addEventListener("click", () => {
   accion = "EMPECE";
   btnEmpece.classList.add("active");
   btnTermine.classList.remove("active");
 
-  // Empecé => NO cantidad (ni título ni cuadro)
   qtyInput.value = "";
   applyAccionUI();
   validateForm();
@@ -159,33 +140,23 @@ btnTermine.addEventListener("click", () => {
 
 function applyAccionUI(){
   const noHayCodigo = noCodeChk.checked;
-
-  // reseteo clases de cantidad
   formBody.classList.remove("qty-hidden", "qty-right");
 
   if(accion === "TERMINE"){
-    // Mostrar cantidad
     if(noHayCodigo){
-      // No hay código => cantidad centrada y unidad arriba del cuadro
-      if(unitTitle.parentElement !== qtyBox){
-        qtyBox.prepend(unitTitle);
-      }
+      if(unitTitle.parentElement !== qtyBox) qtyBox.prepend(unitTitle);
       unitSlotHeader.innerHTML = "";
-      // qty visible (sin qty-hidden)
     }else{
-      // Hay código => cantidad a la derecha + unidad en header
       formBody.classList.add("qty-right");
       unitSlotHeader.innerHTML = "";
       unitSlotHeader.appendChild(unitTitle);
     }
   }else{
-    // EMPECE o null => ocultar cantidad y ocultar unidad
     formBody.classList.add("qty-hidden");
     if(unitSlotHeader.contains(unitTitle)) unitSlotHeader.innerHTML = "";
     if(qtyBox.contains(unitTitle)) qtyBox.removeChild(unitTitle);
   }
 
-  // Si aún no eligieron acción, también ocultamos cantidad/unidad
   if(accion === null){
     formBody.classList.add("qty-hidden");
     if(unitSlotHeader.contains(unitTitle)) unitSlotHeader.innerHTML = "";
@@ -193,31 +164,24 @@ function applyAccionUI(){
   }
 }
 
-/* ---------------- restricciones de input ---------------- */
+/* ---------- restricciones inputs ---------- */
 codeInput.addEventListener("input", () => {
-  // cuando hay código -> solo números
   if(!noCodeChk.checked) onlyDigits(codeInput);
   validateForm();
 });
-
 detailInput.addEventListener("input", validateForm);
-
 qtyInput.addEventListener("input", () => {
   onlyNumberWithComma(qtyInput);
   validateForm();
 });
 
-/* ---------------- validación ---------------- */
+/* ---------- validación ---------- */
 function validateForm(){
   const areaOk = (tipoSeleccionado !== null);
   const accionOk = (accion === "EMPECE" || accion === "TERMINE");
-
   const noHayCodigo = noCodeChk.checked;
 
-  // Código/Descripción obligatorios según modo
   const codOk = noHayCodigo ? isFilled(detailInput.value) : isFilled(codeInput.value);
-
-  // Cantidad: SOLO si Terminé
   const cantOk = (accion === "TERMINE") ? isFilled(qtyInput.value) : true;
 
   const allOk = areaOk && accionOk && codOk && cantOk;
@@ -227,30 +191,37 @@ function validateForm(){
     if(allOk){
       hintText.textContent = "Listo para enviar";
     }else{
-      if(!areaOk) {
-        hintText.textContent = "Elegí el Área";
-      } else if(!accionOk){
-        hintText.textContent = "Elegí Empecé o Terminé";
-      } else if(!codOk){
-        hintText.textContent = noHayCodigo ? "Completá la Descripción" : "Completá el Código";
-      } else if(!cantOk){
-        hintText.textContent = "Completá la Cantidad";
-      } else {
-        hintText.textContent = "Completá los datos";
-      }
+      if(!areaOk) hintText.textContent = "Elegí el Área";
+      else if(!accionOk) hintText.textContent = "Elegí Empecé o Terminé";
+      else if(!codOk) hintText.textContent = noHayCodigo ? "Completá la Descripción" : "Completá el Código";
+      else if(!cantOk) hintText.textContent = "Completá la Cantidad";
+      else hintText.textContent = "Completá los datos";
     }
   }
 }
 
-/* ---------------- envío a Apps Script ---------------- */
+/* ---------- envío: FIX CORS (evita preflight) ---------- */
 async function postRow(payload){
+  // ✅ Content-Type simple => evita preflight OPTIONS
   const r = await fetch(GOOGLE_SHEET_WEBAPP_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify(payload)
   });
-  const out = await r.json().catch(() => ({ ok:false, error:"Respuesta inválida" }));
-  if(!out.ok) throw new Error(out.error || "No se pudo guardar");
+
+  const txt = await r.text();
+
+  let out;
+  try { out = JSON.parse(txt); }
+  catch {
+    console.error("Respuesta NO JSON:", txt);
+    out = { ok:false, error:"Respuesta no JSON (ver consola). Inicio: " + String(txt).slice(0,180) };
+  }
+
+  if(!out.ok){
+    console.error("Respuesta error:", out);
+    throw new Error(out.error || "No se pudo guardar");
+  }
   return out;
 }
 
@@ -274,7 +245,6 @@ sendBtn.addEventListener("click", async () => {
   try{
     sendBtn.disabled = true;
 
-    // 2 nombres => 2 filas
     for(const emp of empleadosSeleccionados){
       await postRow({ ...base, Empleado: emp });
     }
@@ -287,8 +257,7 @@ sendBtn.addEventListener("click", async () => {
   }
 });
 
-/* estado inicial */
+/* ---------- init ---------- */
 optionsScreen.classList.toggle("no-code-mode", noCodeChk.checked);
 applyAccionUI();
 validateForm();
-
