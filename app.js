@@ -1,5 +1,5 @@
 const GOOGLE_SHEET_WEBAPP_URL =
-  "https://script.google.com/macros/s/AKfycbyx3BgnhoWqEWSlYfKC6SrPEPqV9BxOoQtLbqRdzokhdCMAgbLwICtq3zmqlE6-XBgb/exec";
+  "https://script.google.com/macros/s/AKfycbyvUBHcjf8pl-9wOZK7ADTYiVlLXr49h-dC6f_WH4JpQDpU9LibIT_952x9WDiuEb-LfQ/exec";
 
 let empleadosSeleccionados = [];
 let tipoSeleccionado = null;
@@ -48,6 +48,14 @@ function nowAR(){
   const Hora = d.toLocaleTimeString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" });
   return { Dia, Hora };
 }
+function accionLabel(){
+  if(accion === "EMPECE") return "Empecé";
+  if(accion === "TERMINE") return "Terminé";
+  return "";
+}
+function isSpecialSector(n){
+  return [7,8,9].includes(Number(n));
+}
 
 /* ---------- empleados ---------- */
 document.querySelectorAll('[data-emp]').forEach(el => {
@@ -85,8 +93,11 @@ tipoGrid.querySelectorAll('[data-tipo]').forEach(el => {
   el.addEventListener("click", () => {
     tipoGrid.querySelectorAll(".option").forEach(o => o.classList.remove("active"));
     el.classList.add("active");
+
     tipoSeleccionado = Number(el.getAttribute("data-tipo"));
+
     setUnidad(tipoSeleccionado);
+    applySectorRules();
     validateForm();
   });
 });
@@ -99,8 +110,13 @@ function setUnidad(n){
 
 /* ---------- toggle no code ---------- */
 noCodeChk.addEventListener("change", () => {
-  const noHayCodigo = noCodeChk.checked;
+  // si es sector especial, no se permite
+  if(isSpecialSector(tipoSeleccionado)){
+    noCodeChk.checked = true;
+    return;
+  }
 
+  const noHayCodigo = noCodeChk.checked;
   optionsScreen.classList.toggle("no-code-mode", noHayCodigo);
 
   if(noHayCodigo){
@@ -138,25 +154,108 @@ btnTermine.addEventListener("click", () => {
   validateForm();
 });
 
+/* ---------- reglas por sector ---------- */
+function applySectorRules(){
+  const special = isSpecialSector(tipoSeleccionado);
+  optionsScreen.classList.toggle("special-sector", special);
+
+  if(special){
+    // en 07/08/09 siempre "No hay código"
+    noCodeChk.checked = true;
+    noCodeChk.disabled = true;
+    optionsScreen.classList.add("no-code-mode");
+
+    // siempre modo no-code para poder usar detail si corresponde
+    formBody.classList.remove("mode-code");
+    formBody.classList.add("mode-nocode");
+
+    // limpiar todo
+    codeInput.value = "";
+    qtyInput.value = "";
+
+    // ocultar unidad siempre en especiales
+    if(unitSlotHeader.contains(unitTitle)) unitSlotHeader.innerHTML = "";
+    if(qtyBox.contains(unitTitle)) qtyBox.removeChild(unitTitle);
+
+    // mostrar/ocultar descripción según cuál:
+    // 07 Limp y 09 Baño => NO escribir nada
+    // 08 Mov => descripción obligatoria
+    if(tipoSeleccionado === 8){
+      detailInput.placeholder = "Descripción (qué hizo)";
+      detailInput.style.display = "block";
+    }else{
+      detailInput.value = "";
+      detailInput.style.display = "none";
+    }
+
+    // cantidad: solo si Terminé? -> NO. Para 07/08/09 nunca.
+    formBody.classList.add("qty-hidden");
+    formBody.classList.remove("qty-right");
+
+  }else{
+    // sector normal
+    noCodeChk.disabled = false;
+    detailInput.style.display = "block";
+    detailInput.placeholder = "Detalle / Observación";
+
+    // aplicar modo según checkbox
+    if(noCodeChk.checked){
+      formBody.classList.remove("mode-code");
+      formBody.classList.add("mode-nocode");
+      optionsScreen.classList.add("no-code-mode");
+    }else{
+      formBody.classList.remove("mode-nocode");
+      formBody.classList.add("mode-code");
+      optionsScreen.classList.remove("no-code-mode");
+    }
+  }
+
+  applyAccionUI();
+}
+
+/* ---------- UI según acción ---------- */
 function applyAccionUI(){
   const noHayCodigo = noCodeChk.checked;
+  const special = isSpecialSector(tipoSeleccionado);
+
   formBody.classList.remove("qty-hidden", "qty-right");
 
+  // En sectores especiales:
+  // - 07 Limp / 09 Baño: nada para completar (solo acción)
+  // - 08 Mov: solo descripción (y acción)
+  // - cantidad nunca aparece
+  if(special){
+    formBody.classList.add("qty-hidden");
+    if(unitSlotHeader.contains(unitTitle)) unitSlotHeader.innerHTML = "";
+    if(qtyBox.contains(unitTitle)) qtyBox.removeChild(unitTitle);
+    return;
+  }
+
+  // Sector normal
   if(accion === "TERMINE"){
+    // Terminé => cantidad visible
     if(noHayCodigo){
+      // no-code => unidad arriba de cantidad centrada
       if(unitTitle.parentElement !== qtyBox) qtyBox.prepend(unitTitle);
       unitSlotHeader.innerHTML = "";
+      // qty visible (sin qty-hidden)
     }else{
+      // con código => cantidad derecha + unidad en header
       formBody.classList.add("qty-right");
       unitSlotHeader.innerHTML = "";
       unitSlotHeader.appendChild(unitTitle);
     }
   }else{
+    // Empecé o null => ocultar cantidad y unidad
     formBody.classList.add("qty-hidden");
     if(unitSlotHeader.contains(unitTitle)) unitSlotHeader.innerHTML = "";
     if(qtyBox.contains(unitTitle)) qtyBox.removeChild(unitTitle);
+
+    // Empecé => cantidad no aplica
+    qtyInput.value = "";
   }
 
+  // si no eligieron acción aún
   if(accion === null){
     formBody.classList.add("qty-hidden");
     if(unitSlotHeader.contains(unitTitle)) unitSlotHeader.innerHTML = "";
@@ -180,29 +279,54 @@ function validateForm(){
   const areaOk = (tipoSeleccionado !== null);
   const accionOk = (accion === "EMPECE" || accion === "TERMINE");
   const noHayCodigo = noCodeChk.checked;
+  const special = isSpecialSector(tipoSeleccionado);
 
-  const codOk = noHayCodigo ? isFilled(detailInput.value) : isFilled(codeInput.value);
-  const cantOk = (accion === "TERMINE") ? isFilled(qtyInput.value) : true;
+  let codOk = false;
+  let cantOk = true;
+
+  if(!areaOk){
+    sendBtn.disabled = true;
+    if(hintText) hintText.textContent = "Elegí el Área";
+    return;
+  }
+
+  if(!accionOk){
+    sendBtn.disabled = true;
+    if(hintText) hintText.textContent = "Elegí Empecé o Terminé";
+    return;
+  }
+
+  if(special){
+    // 07 Limp y 09 Baño: nada
+    if(tipoSeleccionado === 7 || tipoSeleccionado === 9){
+      codOk = true;
+    }
+    // 08 Mov: descripción obligatoria
+    if(tipoSeleccionado === 8){
+      codOk = isFilled(detailInput.value);
+    }
+
+    // cantidad nunca
+    cantOk = true;
+
+  }else{
+    // sector normal: código o descripción según checkbox
+    codOk = noHayCodigo ? isFilled(detailInput.value) : isFilled(codeInput.value);
+
+    // cantidad solo si Terminé
+    cantOk = (accion === "TERMINE") ? isFilled(qtyInput.value) : true;
+  }
 
   const allOk = areaOk && accionOk && codOk && cantOk;
   sendBtn.disabled = !allOk;
 
   if(hintText){
-    if(allOk){
-      hintText.textContent = "Listo para enviar";
-    }else{
-      if(!areaOk) hintText.textContent = "Elegí el Área";
-      else if(!accionOk) hintText.textContent = "Elegí Empecé o Terminé";
-      else if(!codOk) hintText.textContent = noHayCodigo ? "Completá la Descripción" : "Completá el Código";
-      else if(!cantOk) hintText.textContent = "Completá la Cantidad";
-      else hintText.textContent = "Completá los datos";
-    }
+    hintText.textContent = allOk ? "Listo para enviar" : "Completá lo que falta";
   }
 }
 
 /* ---------- envío: FIX CORS (evita preflight) ---------- */
 async function postRow(payload){
-  // ✅ Content-Type simple => evita preflight OPTIONS
   const r = await fetch(GOOGLE_SHEET_WEBAPP_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -233,18 +357,41 @@ sendBtn.addEventListener("click", async () => {
   }
 
   const t = nowAR();
-  const noHayCodigo = noCodeChk.checked;
+  const special = isSpecialSector(tipoSeleccionado);
 
   const Sector = sector2(tipoSeleccionado);
-  const Cod = noHayCodigo ? "" : (codeInput.value || "").trim();
-  const Descripcion = noHayCodigo ? (detailInput.value || "").trim() : "";
-  const Cant = (accion === "TERMINE") ? (qtyInput.value || "").trim() : "";
+  const EmpeceTermine = accionLabel();
 
-  const base = { Dia: t.Dia, Hora: t.Hora, Sector, Cod, Cant, Descripcion };
+  let Cod = "";
+  let Descripcion = "";
+  let Cant = "";
+
+  if(special){
+    // 07 Limp / 09 Baño: todo vacío
+    if(tipoSeleccionado === 8){
+      Descripcion = (detailInput.value || "").trim();
+    }
+  }else{
+    const noHayCodigo = noCodeChk.checked;
+    Cod = noHayCodigo ? "" : (codeInput.value || "").trim();
+    Descripcion = noHayCodigo ? (detailInput.value || "").trim() : "";
+    Cant = (accion === "TERMINE") ? (qtyInput.value || "").trim() : "";
+  }
+
+  const base = {
+    Dia: t.Dia,
+    Hora: t.Hora,
+    Sector,
+    Cod,
+    EmpeceTermine,
+    Cant,
+    Descripcion
+  };
 
   try{
     sendBtn.disabled = true;
 
+    // 2 nombres => 2 filas
     for(const emp of empleadosSeleccionados){
       await postRow({ ...base, Empleado: emp });
     }
@@ -258,7 +405,6 @@ sendBtn.addEventListener("click", async () => {
 });
 
 /* ---------- init ---------- */
-optionsScreen.classList.toggle("no-code-mode", noCodeChk.checked);
+applySectorRules();
 applyAccionUI();
 validateForm();
-
