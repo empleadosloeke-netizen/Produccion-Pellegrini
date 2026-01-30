@@ -39,6 +39,11 @@ h2{ text-align:center; margin:10px 0 10px; }
 }
 .option.active{ background:#16a34a; }
 
+.option.disabled{
+  opacity:.35;
+  pointer-events:none;
+}
+
 .option-small{
   padding:14px 5px;
   font-size:14px;
@@ -46,12 +51,6 @@ h2{ text-align:center; margin:10px 0 10px; }
 }
 
 .subblock{ margin-top:12px; }
-.sub-title{
-  font-size:12px;
-  opacity:.8;
-  margin:0 0 6px 2px;
-  font-weight:800;
-}
 
 .btn{
   margin-top:12px;
@@ -142,6 +141,7 @@ h2{ text-align:center; margin:10px 0 10px; }
   min-height:48px;
 }
 
+/* Acciones por defecto: vertical */
 .actions-col{
   display:flex;
   flex-direction:column;
@@ -183,7 +183,7 @@ h2{ text-align:center; margin:10px 0 10px; }
   grid-template-columns: repeat(3, 1fr);
   gap:var(--grid-gap);
   align-items:start;
-  margin-top:-58px; /* si querés ajustar fino: -54 a -64 */
+  margin-top:-58px; /* ajustá fino si querés */
   padding-top:0;
 }
 
@@ -232,8 +232,13 @@ h2{ text-align:center; margin:10px 0 10px; }
 .no-code-mode .actions-col #btnEmpece{ grid-column: 1 / 2; }
 .no-code-mode .actions-col #btnTermine{ grid-column: 2 / 3; }
 
-/* Modo Quick (Limp/Mov/Baño): escondemos “Cod.” y checkbox visualmente */
-.quick-mode .head-left{
-  opacity:.25;
-  pointer-events:none;
+/* CUANDO ES Limp/Mov/Baño: Empecé y Terminé a la derecha (siempre) */
+.quick-mode .actions-col{
+  grid-column: 2 / 4;
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:var(--grid-gap);
+  align-items:stretch;
 }
+.quick-mode .actions-col #btnEmpece{ grid-column: 1 / 2; }
+.quick-mode .actions-col #btnTermine{ grid-column: 2 / 3; }
