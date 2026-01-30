@@ -36,7 +36,7 @@
         <div class="screen-head-title">Seleccioná</div>
       </div>
 
-      <!-- Sector 01–09 -->
+      <!-- Sector 01–09 (vuelve como antes: solo números) -->
       <div class="grid" id="tipoGrid">
         <div class="option" data-tipo="1">01</div>
         <div class="option" data-tipo="2">02</div>
@@ -44,21 +44,18 @@
         <div class="option" data-tipo="4">04</div>
         <div class="option" data-tipo="5">05</div>
         <div class="option" data-tipo="6">06</div>
+        <div class="option" data-tipo="7">07</div>
+        <div class="option" data-tipo="8">08</div>
+        <div class="option" data-tipo="9">09</div>
+      </div>
 
-        <!-- 07/08/09 con etiqueta -->
-        <div class="option opt-two" data-tipo="7">
-          <div class="opt-num">07</div>
-          <div class="opt-sub">Limp</div>
-        </div>
-
-        <div class="option opt-two" data-tipo="8">
-          <div class="opt-num">08</div>
-          <div class="opt-sub">Mov</div>
-        </div>
-
-        <div class="option opt-two" data-tipo="9">
-          <div class="opt-num">09</div>
-          <div class="opt-sub">Baño</div>
+      <!-- Botones extra: Limp / Mov / Baño (son independientes) -->
+      <div class="subblock">
+        <div class="sub-title">Acción rápida</div>
+        <div class="grid" id="quickGrid">
+          <div class="option option-small" data-quick="LIMP">Limp</div>
+          <div class="option option-small" data-quick="MOV">Mov</div>
+          <div class="option option-small" data-quick="BANO">Baño</div>
         </div>
       </div>
 
@@ -66,7 +63,7 @@
 
         <!-- CABECERA -->
         <div class="form-head">
-          <div class="head-left">
+          <div class="head-left" id="headLeft">
             <strong>Cod.</strong>
 
             <label class="nocode-label">
