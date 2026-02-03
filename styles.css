@@ -29,13 +29,15 @@ h2{ text-align:center; margin:10px 0 10px; }
 
 .option{
   background:#1e293b;
-  padding:18px 5px;
   text-align:center;
   border-radius:12px;
   cursor:pointer;
   font-weight:700;
   transition:.2s;
   user-select:none;
+}
+.option-empleado{
+  padding:18px 5px;
 }
 .option.active{ background:#16a34a; }
 
@@ -45,9 +47,11 @@ h2{ text-align:center; margin:10px 0 10px; }
 }
 
 .option-small{
-  padding:14px 5px;
+  padding:10px 5px;
   font-size:14px;
   font-weight:800;
+  text-align:center;
+  font-weight:700;
 }
 
 .option-num .num{
@@ -279,4 +283,49 @@ h2{ text-align:center; margin:10px 0 10px; }
   line-height:1.35;
   opacity:.95;
   white-space:pre-line;
+}
+.grid-4{
+  grid-template-columns: repeat(4, 1fr);
+}
+/* ===== Armado Pedido: header sin Cod/No hay código + acciones en una fila ===== */
+.armado-head .head-left{
+  display:none;
+}
+
+.armado-head .actions-col{
+  grid-column: 1 / 3;           /* ocupa col 1 y 2 */
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--grid-gap);
+  align-items:stretch;
+}
+
+.armado-head .actions-col #btnEmpece{ grid-column: 1 / 2; }
+.armado-head .actions-col #btnTermine{ grid-column: 2 / 3; }
+/* ===== FIX SUPERPOSICIÓN ARMADO PEDIDO ===== */
+.armado-head .form-head{
+  margin-bottom: 14px;     /* espacio real debajo del header */
+}
+
+.armado-head .form-body{
+  margin-top: 0 !important;   /* anula el -58px que lo subía */
+}
+/* Armado Pedido: fila N°NP + input en una sola línea */
+.armado-np-row #qtyBox{
+  display:flex;
+  flex-direction:row;
+  align-items:center;
+  gap:12px;
+}
+
+.armado-np-row #qtyBox .npLabel{
+  font-weight:900;
+  font-size:14px;
+  opacity:.95;
+  white-space:nowrap;
+}
+
+.armado-np-row #qtyInput{
+  flex:1;
+  text-align:center;
 }
