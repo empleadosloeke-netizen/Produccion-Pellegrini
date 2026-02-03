@@ -14,15 +14,15 @@
     <div id="empleadoScreen">
       <h2>Seleccioná hasta 2 nombres</h2>
       <div class="grid">
-        <div class="option" data-emp="Lautaro Durante">Lautaro Durante</div>
-        <div class="option" data-emp="Javier Burgos">Javier Burgos</div>
-        <div class="option" data-emp="Ximena Ortiz">Ximena Ortiz</div>
-        <div class="option" data-emp="Walter Saucedo">Walter Saucedo</div>
-        <div class="option" data-emp="Juan Gimenez">Juan Gimenez</div>
-        <div class="option" data-emp="Federico Realini">Federico Realini</div>
-        <div class="option" data-emp="David Galarza">David Galarza</div>
-        <div class="option" data-emp="Dario Mendez">Dario Mendez</div>
-        <div class="option" data-emp="Luis Luna">Luis Luna</div>
+        <div class="option option-empleado" data-emp="Lautaro Durante">Lautaro Durante</div>
+        <div class="option option-empleado" data-emp="Javier Burgos">Javier Burgos</div>
+        <div class="option option-empleado" data-emp="Ximena Ortiz">Ximena Ortiz</div>
+        <div class="option option-empleado" data-emp="Walter Saucedo">Walter Saucedo</div>
+        <div class="option option-empleado" data-emp="Juan Gimenez">Juan Gimenez</div>
+        <div class="option option-empleado" data-emp="Federico Realini">Federico Realini</div>
+        <div class="option option-empleado" data-emp="David Galarza">David Galarza</div>
+        <div class="option option-empleado" data-emp="Dario Mendez">Dario Mendez</div>
+        <div class="option option-empleado" data-emp="Luis Luna">Luis Luna</div>
       </div>
 
       <button id="acceptEmpleadoBtn" class="btn" disabled>Aceptar</button>
@@ -57,6 +57,19 @@
           <div class="option option-small" data-quick="BANO">Baño</div>
         </div>
       </div>
+
+      <!-- NUEVA LINEA: 3 quick + 1 sector -->
+      <div class="subblock">
+        <div class="grid grid-4" id="extraGrid">
+          <div class="option option-small" data-quick="CARGA_CAMION">Carga Camion</div>
+          <div class="option option-small" data-quick="TIMBRE">Atendi Timbre</div>
+          <div class="option option-small" data-quick="DESCARGA_MOLDURA">Descarga Moldura</div>
+
+          <!-- Actúa como 01–09 -->
+          <div class="option option-small option-sector10" data-tipo="10">Armado Pedido</div>
+        </div>
+      </div>
+
 
       <div class="form-row">
         <div class="form-head">
@@ -93,7 +106,6 @@
 
         <button id="sendBtn" class="btn" disabled>Enviar reporte</button>
         
-       <div id="quickFinishContainer"></div>
         
         <div class="hint" id="hintText">Completá para habilitar “Enviar”</div>
       </div>
@@ -104,6 +116,5 @@
   <script src="app.js"></script>
 </body>
 </html>
-
 
 
